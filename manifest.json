@@ -1,0 +1,10 @@
+{
+  "name": "ZHP2D 蓝牙控制台",
+  "short_name": "ZHP2D",
+  "description": "通过 Web Bluetooth 连接 ZHP2D 设备",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#05080f",
+  "theme_color": "#070b14",
+  "orientation": "portrait"
+}
