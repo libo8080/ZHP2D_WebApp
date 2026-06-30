@@ -69,6 +69,7 @@
       linear-gradient(var(--line) 1px,transparent 1px),
       linear-gradient(90deg,var(--line) 1px,transparent 1px);
     background-size: 32px 32px;
+    -webkit-mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 70%);
     mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 70%);
     opacity:.5;
   }
@@ -687,6 +688,7 @@ async function connectBLE(){
         acceptAllDevices:true, optionalServices:[SVC_UUID]
       });
     }
+    if (device) device.removeEventListener('gattserverdisconnected', onDisconnect);
     device.addEventListener('gattserverdisconnected', onDisconnect);
     logI('连接 GATT...');
     server = await device.gatt.connect();
@@ -945,7 +947,11 @@ function drawChart(){
     ctx.fillStyle = color; ctx.fill();
   });
 }
-window.addEventListener('resize', ()=>drawChart());
+let resizeTimer;
+window.addEventListener('resize', ()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(drawChart, 150);
+});
 
 /* ===================== Settings (tree, mimics scr2 menu) ===================== */
 /* schema 直接硬编码在前端,避免拉取大帧 config/schema 导致 BLE 通知分块超时。
