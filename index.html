@@ -90,6 +90,7 @@
     background:var(--grad);
     position:relative;display:grid;place-items:center;color:#02121a;font-weight:900;
     box-shadow:0 6px 16px -6px var(--cyan);
+    touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
   }
   .logo::after{
     content:"";position:absolute;inset:-2px;border-radius:12px;
@@ -132,7 +133,7 @@
     border-top:1px solid var(--line);
   }
   .tabs-inner{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:560px;margin:0 auto;
+    display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:560px;margin:0 auto;
   }
   .tab{
     border:none;background:transparent;color:var(--text-dim);
@@ -285,6 +286,11 @@
   .setting .lbl{font-size:13px}
   .setting .lbl small{display:block;font-size:10px;color:var(--text-fade);letter-spacing:.1em;margin-top:2px}
   .setting .ctrl{display:flex;align-items:center;gap:6px}
+  /* 钻取式子菜单导航行(scr2 风格) */
+  .setting.nav{cursor:pointer;border-radius:8px;transition:background .15s;user-select:none}
+  .setting.nav:active{background:rgba(34,230,255,.08)}
+  .setting.nav .chev{color:var(--cyan);font-size:18px;font-weight:700;line-height:1}
+  .setting.nav.back .lbl{color:var(--cyan);font-weight:600}
   .sub-section{margin:8px 0 4px;padding:8px 10px 6px;border:1px solid var(--line);border-radius:10px;background:rgba(120,170,255,.04)}
   .sub-section>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--cyan);list-style:none;user-select:none;padding:2px 0}
   .sub-section>summary::before{content:'▾ ';color:var(--text-fade)}
@@ -431,7 +437,7 @@
 <header>
   <div class="top-row">
     <div class="brand">
-      <div class="logo">⚡</div>
+      <div class="logo" id="logo">⚡</div>
       <div>
         <h1>ZHP2D</h1>
         <small>BLE · CONSOLE</small>
@@ -443,6 +449,19 @@
     </div>
   </div>
 </header>
+
+<!-- ============ 受限模式密码管理(logo 长按触发) ============ -->
+<div class="modal" id="pw-modal">
+  <div class="modal-card">
+    <h3>发送命令</h3>
+    <input id="pw-input" type="text" placeholder="输入命令" autocomplete="off"
+           style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--bg-2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;margin-bottom:14px">
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="pw-ok" style="flex:1">确定</button>
+      <button class="btn ghost" id="pw-cancel" style="flex:1">取消</button>
+    </div>
+  </div>
+</div>
 
 <main>
 
@@ -604,8 +623,35 @@
       <div>SVC <span style="color:var(--violet)">12345678-...-cdef0</span></div>
       <div>RX <span style="color:var(--green)">...cdef1 (Write)</span></div>
       <div>TX <span style="color:var(--green)">...cdef2 (Notify)</span></div>
+      <div>OTA <span style="color:var(--cyan)">...cdef3 (Write)</span></div>
       <div style="margin-top:8px;color:var(--text-fade);font-size:10px">支持 Web Bluetooth 的浏览器:Chrome/Edge (HTTPS 或 localhost)</div>
     </div>
+  </div>
+</section>
+
+<section id="view-ota" class="view">
+  <div class="card">
+    <div class="card-title"><span>FIRMWARE UPDATE · BLE OTA</span></div>
+    <div style="font-size:12px;color:var(--text-dim);line-height:1.7">
+      选择 ZHP2D 固件 <b>.bin</b> 文件,通过蓝牙上传。设备校验 SHA256 后重启到 BOOT,由 BOOT 写入 factory 分区。
+      <div style="margin-top:6px;color:var(--text-fade);font-size:11px">传输期间日志写 storage2 与 OTA 共用一把锁(日志优先);升级期间请保持屏幕常亮、勿断开蓝牙。</div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input type="file" id="ota-file" accept=".bin" style="font-size:12px;flex:1;min-width:200px;color:var(--text-dim)">
+      <button class="btn" id="btn-ota-start" disabled>开始升级</button>
+      <button class="btn ghost" id="btn-ota-abort" disabled>取消</button>
+      <button class="btn ghost" id="btn-ota-fmt" style="color:#ff6b6b">格式化storage2</button>
+    </div>
+    <div id="ota-filename" style="font-size:11px;color:var(--text-fade);margin-top:8px;min-height:14px"></div>
+    <div style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);margin-bottom:4px">
+        <span id="ota-status">待机</span><span id="ota-pct">0%</span>
+      </div>
+      <div style="height:10px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden">
+        <div id="ota-bar" style="height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--green));transition:width .2s"></div>
+      </div>
+    </div>
+    <div id="ota-log" style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);line-height:1.6;max-height:140px;overflow:auto;white-space:pre-wrap"></div>
   </div>
 </section>
 
@@ -625,6 +671,10 @@
     <button class="tab" data-view="log">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
       <span>LOG</span>
+    </button>
+    <button class="tab" data-view="ota">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      <span>OTA</span>
     </button>
   </div>
 </nav>
@@ -651,8 +701,9 @@ const logI = m=>log(m,'i'), logW = m=>log(m,'w'), logE = m=>log(m,'e');
 const SVC_UUID = '12345678-1234-5678-1234-56789abcdef0';
 const RX_UUID  = '12345678-1234-5678-1234-56789abcdef1';
 const TX_UUID  = '12345678-1234-5678-1234-56789abcdef2';
+const OTA_UUID = '12345678-1234-5678-1234-56789abcdef3';
 
-let device=null, server=null, rxChr=null, txChr=null;
+let device=null, server=null, rxChr=null, txChr=null, otaChr=null;
 let reqId=1; const pending=new Map();
 let rxBuf='';
 let connected=false;
@@ -695,9 +746,11 @@ async function connectBLE(){
     const svc = await server.getPrimaryService(SVC_UUID);
     rxChr = await svc.getCharacteristic(RX_UUID);
     txChr = await svc.getCharacteristic(TX_UUID);
+    try { otaChr = await svc.getCharacteristic(OTA_UUID); } catch(e){ otaChr=null; logW('OTA 特征未找到'); }
     await txChr.startNotifications();
     txChr.addEventListener('characteristicvaluechanged', onNotify);
     setConnUI(true);
+    otaRefreshUI();
     logI('已连接 '+device.name+' (等待配对确认...)');
     initAfterPair();
   }catch(e){
@@ -709,6 +762,9 @@ function onDisconnect(){
   setConnUI(false);
   pending.forEach(p=>p.rej('disconnected'));
   pending.clear();
+  otaPending.forEach(p=>p.rej('disconnected'));
+  otaPending.clear();
+  otaBusy=false; otaRefreshUI();
   rxBuf=''; waitingFirstTele = false; logW('设备已断开');
 }
 /* 配对完成时设备自动开始遥测推送(无需 sub tele).
@@ -751,6 +807,7 @@ function onNotify(e){
 }
 async function handleMsg(msg){
   if (msg.ev === 'tele'){ renderTele(msg.data); return; }
+  if (msg.ev === 'ota'){ handleOtaMsg(msg); return; }
   if (msg.id != null && pending.has(msg.id)){
     const p = pending.get(msg.id); pending.delete(msg.id);
     if (msg.ok) p.res(msg.data);
@@ -788,6 +845,99 @@ function call(op, path, extra={}){
   });
 }
 
+/* ===================== BLE OTA ===================== */
+const otaState = { file:null };
+let otaBusy = false;
+const otaPending = new Map();
+function otaLog(m, cls){
+  const el=$('ota-log'); if(!el) return;
+  const d=document.createElement('div'); d.textContent=m;
+  if (cls) d.style.color = cls==='e' ? '#ff6b6b' : (cls==='w' ? '#f0c050' : 'var(--cyan)');
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+function otaSetStatus(s, pct){
+  $('ota-status').textContent=s;
+  $('ota-pct').textContent=Math.round(pct)+'%';
+  $('ota-bar').style.width=Math.round(pct)+'%';
+}
+function otaRefreshUI(){
+  const c = connected && !!otaChr;
+  $('btn-ota-start').disabled = !c || !otaState.file || otaBusy;
+  $('btn-ota-abort').disabled = !otaBusy;
+}
+function handleOtaMsg(msg){
+  if (msg.status === 'progress'){
+    const pct = msg.total ? (msg.w*100/msg.total) : 0;
+    const kb = n => n>=1048576 ? (n/1048576).toFixed(2)+'MB' : (n/1024).toFixed(0)+'KB';
+    otaSetStatus('上传中 '+kb(msg.w)+' / '+kb(msg.total), pct);
+  } else if (msg.status === 'applying'){
+    otaSetStatus('应用中 · 重启到 BOOT', 100);
+    otaLog('✓ apply OK · 设备重启到 BOOT 完成刷写', 'i');
+    otaBusy = false; otaRefreshUI();
+  } else if (msg.status === 'aborted'){
+    otaSetStatus('已取消', 0); otaBusy=false; otaRefreshUI(); otaLog('已取消', 'w');
+  } else if (msg.status === 'error'){
+    otaLog('✗ '+(msg.msg||'错误'), 'e'); otaSetStatus('失败', 0); otaBusy=false; otaRefreshUI();
+  }
+  if (msg.id != null && otaPending.has(msg.id)){
+    const p = otaPending.get(msg.id); otaPending.delete(msg.id);
+    if (msg.status === 'error') p.rej(msg.msg||'error'); else p.res(msg);
+  }
+}
+function otaCall(cmd, extra={}){
+  return new Promise((res, rej)=>{
+    if (!rxChr) return rej('not connected');
+    const id = reqId++;
+    otaPending.set(id, {res, rej});
+    const json = JSON.stringify({id, op:'ota', cmd, ...extra}) + '\n';
+    const data = new TextEncoder().encode(json);
+    gattSerialize(async ()=>{
+      try{
+        const chunk = 180;
+        for (let i=0;i<data.length;i+=chunk)
+          await (rxChr.writeValueWithoutResponse ? rxChr.writeValueWithoutResponse(data.slice(i,i+chunk)) : rxChr.writeValue(data.slice(i,i+chunk)));
+      }catch(e){ if (otaPending.has(id)){ otaPending.delete(id); rej(e.message||e); } }
+    });
+    setTimeout(()=>{ if (otaPending.has(id)){ otaPending.delete(id); rej('timeout'); }}, 120000);
+  });
+}
+async function otaStart(){
+  const f = otaState.file;
+  if (!f || !otaChr) return;
+  otaBusy = true; otaRefreshUI();
+  try{
+    otaSetStatus('计算 SHA256...', 0);
+    otaLog('读取文件 '+f.name+' ('+(f.size/1024).toFixed(1)+'KB)...', 'i');
+    const buf = await f.arrayBuffer();
+    const digest = await crypto.subtle.digest('SHA-256', buf);
+    const sha = [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
+    otaLog('SHA256: '+sha.slice(0,24)+'…', 'i');
+    otaSetStatus('请求开始...', 0);
+    await otaCall('start', {size: f.size, sha256: sha});
+    otaLog('设备就绪, 上传固件...', 'i');
+    const CHUNK = 240;
+    let off = 0;
+    while (off < f.size){
+      const len = Math.min(CHUNK, f.size - off);
+      const slice = new Uint8Array(buf.slice(off, off+len));
+      let ok = false;
+      for (let r=0; r<20 && !ok; r++){
+        try { await gattSerialize(async ()=>{ await otaChr.writeValue(slice); }); ok = true; }
+        catch(e){ await new Promise(rs=>setTimeout(rs, 30)); }   /* queue full — retry same chunk */
+      }
+      if (!ok) throw new Error('chunk @'+off+' 写入失败 (重试 20 次)');
+      off += len;
+    }
+    otaSetStatus('上传完成, 校验并应用...', 100);
+    otaLog('上传完成 ('+f.size+' 字节), 发送 apply...', 'i');
+    await otaCall('apply');
+    /* 'applying' reply → handleOtaMsg shows "重启到 BOOT" */
+  }catch(e){
+    otaLog('✗ '+(e.message||e), 'e'); otaSetStatus('失败', 0);
+    otaBusy = false; otaRefreshUI();
+  }
+}
+
 /* ===================== Telemetry render ===================== */
 const MODE_NAME = ['自动','DC输入','DC输出','照明','强制充满','充满'];
 let lastTele = null;
@@ -815,9 +965,9 @@ function renderTele(d){
   $('k-cap').textContent  = d.cap||0;
   $('k-full').textContent = d.full||0;
 
-  // SOC ring
-  const soc = Math.max(0, Math.min(100, d.soc||0));
-  $('soc-val').textContent = soc;
+  // SOC ring (cap_soc 为小数精度, 缺省回退整数 soc; >=99.9 显示 100, 与屏幕一致)
+  const soc = Math.max(0, Math.min(100, (typeof d.cap_soc === 'number' ? d.cap_soc : d.soc) || 0));
+  $('soc-val').textContent = soc >= 99.9 ? '100' : soc.toFixed(1);
   const C = 2 * Math.PI * 52;
   $('ring-fg').setAttribute('stroke-dasharray', C.toFixed(2));
   $('ring-fg').setAttribute('stroke-dashoffset', (C * (1 - soc/100)).toFixed(2));
@@ -953,10 +1103,12 @@ window.addEventListener('resize', ()=>{
   resizeTimer = setTimeout(drawChart, 150);
 });
 
-/* ===================== Settings (tree, mimics scr2 menu) ===================== */
+/* ===================== Settings (drill-down tree, mimics scr2 menu) ===================== */
 /* schema 直接硬编码在前端,避免拉取大帧 config/schema 导致 BLE 通知分块超时。
-   树形结构对应 Scr2 屏幕菜单;每项值按需通过 get config/<key> 拉取,
-   单次响应很小,不会触发分块传输。 */
+   树形结构对应 Scr2 屏幕菜单;点击分支行进入子菜单(navPath 钻取),
+   每次只拉取当前层直接子叶与 hidden 依赖项的值(get config/<key>),
+   单次响应很小,不会触发分块传输。
+   hidden: {key, eq} — 依赖项的值等于 eq 时隐藏,语义同 scr2 的 hidden_condition。 */
 const SETTING_TREE = [
 { title:'系统', children:[
   { key:'lcd_brightness', title:'屏幕亮度', ui:'slider', min:5, max:100, step:1, unit:'%' },
@@ -964,11 +1116,11 @@ const SETTING_TREE = [
   { key:'lock_wait_time', title:'锁屏延迟', ui:'spinbox', min:10, max:180, step:1, unit:'S' },
   { title:'风扇设置', children:[
     { key:'fun_enable', title:'启用', ui:'switch' },
-    { key:'fun_max', title:'最大风量', ui:'spinbox', min:10, max:100, step:1, unit:'%' },
-    { key:'fun_mos_temp_interval', title:'MOS温区', ui:'range', min:40, max:80, unit:'度' },
-    { key:'fun_bat_temp_interval', title:'电池温区', ui:'range', min:35, max:50, unit:'度' },
-    { key:'fun_led_temp_interval', title:'LED温区', ui:'range', min:40, max:80, unit:'度' },
-    { key:'fun_stop_when_charger_full', title:'充满关闭风扇', ui:'switch' },
+    { key:'fun_max', title:'最大风量', ui:'spinbox', min:10, max:100, step:1, unit:'%', hidden:{key:'fun_enable', eq:false} },
+    { key:'fun_mos_temp_interval', title:'MOS温区', ui:'range', min:40, max:80, unit:'度', hidden:{key:'fun_enable', eq:false} },
+    { key:'fun_bat_temp_interval', title:'电池温区', ui:'range', min:35, max:50, unit:'度', hidden:{key:'fun_enable', eq:false} },
+    { key:'fun_led_temp_interval', title:'LED温区', ui:'range', min:40, max:80, unit:'度', hidden:{key:'fun_enable', eq:false} },
+    { key:'fun_stop_when_charger_full', title:'充满关闭风扇', ui:'switch', hidden:{key:'fun_enable', eq:false} },
   ]},
   { title:'充电设置', children:[
     { key:'temp_control_input_power_default_power', title:'功率上限', ui:'spinbox', min:10, max:100, step:1, unit:'W' },
@@ -992,15 +1144,22 @@ const SETTING_TREE = [
     { key:'temp_control_output_power_bat_ot_power', title:'电池过温限功', ui:'spinbox', min:10, max:120, step:1, unit:'W' },
     { key:'temp_control_output_power_mos_ot_temp', title:'MOS过温', ui:'spinbox', min:40, max:80, step:1, unit:'度' },
     { key:'temp_control_output_power_mos_ot_power', title:'MOS过温限功', ui:'spinbox', min:10, max:120, step:1, unit:'W' },
-    { key:'temp_control_output_power_bat_low_6v_power', title:'电池6V限功', ui:'spinbox', min:10, max:80, step:1, unit:'W' },
+    { key:'temp_control_output_power_bat_low_power', title:'电池5.4V限功', ui:'spinbox', min:10, max:65, step:1, unit:'W' },
     { key:'c_low_load_disconnct', title:'C口空载断开', ui:'switch' },
     { key:'bq_term_min_cell_v', title:'单节截止电压', ui:'spinbox', min:2500, max:3300, step:1, unit:'mV' },
   ]},
   { title:'甩2下唤醒', children:[
     { key:'wakeup_on_double_tap', title:'启用', ui:'switch' },
-    { key:'go_to_led_screen_after_wakeup', title:'唤醒后进入LED界面', ui:'switch' },
+    { key:'go_to_led_screen_after_wakeup', title:'唤醒后进入LED界面', ui:'switch', hidden:{key:'wakeup_on_double_tap', eq:false} },
   ]},
   { key:'efficiency_source', title:'效率来源', ui:'roller', options:['SW6306V','整机'] },
+  { key:'cap_soc_source', title:'电量计算', ui:'roller', options:['mAh','mWh'] },
+  { key:'interface_mode', title:'接口模式', ui:'roller', options:['XT30+C','A+C'] },
+  { title:'震动设置', children:[
+    { key:'haptic_enable', title:'启用', ui:'switch' },
+    { key:'haptic_amplitude', title:'振幅', ui:'spinbox', min:20, max:100, step:1, unit:'%', hidden:{key:'haptic_enable', eq:false} },
+  ]},
+  { key:'chart_enable', title:'折线图', ui:'switch' },
   { key:'app_date', title:'固件日期', ui:'label' },
 ]},
 { title:'SW6306V', children:[
@@ -1015,7 +1174,7 @@ const SETTING_TREE = [
   ]},
   { key:'sw6306_ll_mode', title:'轻载工作模式', ui:'roller', options:['PFM','PWM'] },
   { title:'端口快充开关', children:[
-    { key:'sw6306_fc_a', title:'A口快充', ui:'switch' },
+    { key:'sw6306_fc_a', title:'A口快充', ui:'switch', hidden:{key:'interface_mode', eq:0} },
     { key:'sw6306_fc_c_in', title:'C口输入快充', ui:'switch' },
     { key:'sw6306_fc_c_out', title:'C口输出快充', ui:'switch' },
   ]},
@@ -1046,40 +1205,40 @@ const SETTING_TREE = [
     { key:'sw6306_ufcs_en_10v', title:'启用10V档位', ui:'switch' },
     { key:'sw6306_ufcs_en_20v', title:'启用20V档位', ui:'switch' },
     { key:'sw6306_ufcs_mod_i', title:'修改电流', ui:'switch' },
-    { key:'sw6306_ufcs_5v_ma', title:'5V电流', ui:'spinbox', min:500, max:6350, step:50, unit:'mA' },
-    { key:'sw6306_ufcs_10v_ma', title:'10V电流', ui:'spinbox', min:500, max:6350, step:50, unit:'mA' },
-    { key:'sw6306_ufcs_20v_ma', title:'20V电流', ui:'spinbox', min:500, max:6350, step:50, unit:'mA' },
+    { key:'sw6306_ufcs_5v_ma', title:'5V电流', ui:'spinbox', min:500, max:6350, step:50, unit:'mA', hidden:{key:'sw6306_ufcs_mod_i', eq:false} },
+    { key:'sw6306_ufcs_10v_ma', title:'10V电流', ui:'spinbox', min:500, max:6350, step:50, unit:'mA', hidden:{key:'sw6306_ufcs_mod_i', eq:false} },
+    { key:'sw6306_ufcs_20v_ma', title:'20V电流', ui:'spinbox', min:500, max:6350, step:50, unit:'mA', hidden:{key:'sw6306_ufcs_mod_i', eq:false} },
   ]},
   { key:'sw6306_typec_role', title:'TypeC角色', ui:'roller', options:['双向','输出','输入'] },
   { title:'PD输出设置', children:[
     { key:'sw6306_pd_en', title:'允许PD输出', ui:'switch' },
-    { key:'sw6306_pd_emarker', title:'检测emarker', ui:'switch' },
-    { key:'sw6306_pd_rsp_scp', title:'PD响应SCP', ui:'switch' },
-    { key:'sw6306_pd_rsp_vooc', title:'PD响应VOOC', ui:'switch' },
-    { key:'sw6306_pd_rsp_ufcs', title:'PD响应UFCS', ui:'switch' },
-    { key:'sw6306_pd_pps33', title:'PPS最小电压3.3V', ui:'switch' },
-    { key:'sw6306_pd_9v', title:'9V档位', ui:'switch' },
-    { key:'sw6306_pd_12v', title:'12V档位', ui:'switch' },
-    { key:'sw6306_pd_15v', title:'15V档位', ui:'switch' },
-    { key:'sw6306_pd_20v', title:'20V档位', ui:'switch' },
-    { title:'FIX电流修改', children:[
+    { key:'sw6306_pd_emarker', title:'检测emarker', ui:'switch', hidden:{key:'sw6306_pd_en', eq:false} },
+    { key:'sw6306_pd_rsp_scp', title:'PD响应SCP', ui:'switch', hidden:{key:'sw6306_pd_en', eq:false} },
+    { key:'sw6306_pd_rsp_vooc', title:'PD响应VOOC', ui:'switch', hidden:{key:'sw6306_pd_en', eq:false} },
+    { key:'sw6306_pd_rsp_ufcs', title:'PD响应UFCS', ui:'switch', hidden:{key:'sw6306_pd_en', eq:false} },
+    { key:'sw6306_pd_pps33', title:'PPS最小电压3.3V', ui:'switch', hidden:{key:'sw6306_pd_en', eq:false} },
+    { key:'sw6306_pd_9v', title:'9V档位', ui:'switch', hidden:{key:'sw6306_pd_en', eq:false} },
+    { key:'sw6306_pd_12v', title:'12V档位', ui:'switch', hidden:{key:'sw6306_pd_en', eq:false} },
+    { key:'sw6306_pd_15v', title:'15V档位', ui:'switch', hidden:{key:'sw6306_pd_en', eq:false} },
+    { key:'sw6306_pd_20v', title:'20V档位', ui:'switch', hidden:{key:'sw6306_pd_en', eq:false} },
+    { title:'FIX电流修改', hidden:{key:'sw6306_pd_en', eq:false}, children:[
       { key:'sw6306_pd_fix_en', title:'允许修改', ui:'switch' },
-      { key:'sw6306_pd_fix_5v', title:'5V电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA' },
-      { key:'sw6306_pd_fix_9v', title:'9V电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA' },
-      { key:'sw6306_pd_fix_12v', title:'12V电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA' },
-      { key:'sw6306_pd_fix_15v', title:'15V电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA' },
-      { key:'sw6306_pd_fix_20v', title:'20V电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA' },
+      { key:'sw6306_pd_fix_5v', title:'5V电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA', hidden:{key:'sw6306_pd_fix_en', eq:false} },
+      { key:'sw6306_pd_fix_9v', title:'9V电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA', hidden:{key:'sw6306_pd_fix_en', eq:false} },
+      { key:'sw6306_pd_fix_12v', title:'12V电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA', hidden:{key:'sw6306_pd_fix_en', eq:false} },
+      { key:'sw6306_pd_fix_15v', title:'15V电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA', hidden:{key:'sw6306_pd_fix_en', eq:false} },
+      { key:'sw6306_pd_fix_20v', title:'20V电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA', hidden:{key:'sw6306_pd_fix_en', eq:false} },
     ]},
-    { title:'PPS电流修改', children:[
+    { title:'PPS电流修改', hidden:{key:'sw6306_pd_en', eq:false}, children:[
       { key:'sw6306_pd_pps_en', title:'允许修改', ui:'switch' },
-      { key:'sw6306_pd_pps0_en', title:'PPS0档位', ui:'switch' },
-      { key:'sw6306_pd_pps1_en', title:'PPS1档位', ui:'switch' },
-      { key:'sw6306_pd_pps2_en', title:'PPS2档位', ui:'switch' },
-      { key:'sw6306_pd_pps3_en', title:'PPS3档位', ui:'switch' },
-      { key:'sw6306_pd_pps0_ma', title:'PPS0电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA' },
-      { key:'sw6306_pd_pps1_ma', title:'PPS1电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA' },
-      { key:'sw6306_pd_pps2_ma', title:'PPS2电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA' },
-      { key:'sw6306_pd_pps3_ma', title:'PPS3电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA' },
+      { key:'sw6306_pd_pps0_en', title:'PPS0档位', ui:'switch', hidden:{key:'sw6306_pd_pps_en', eq:false} },
+      { key:'sw6306_pd_pps1_en', title:'PPS1档位', ui:'switch', hidden:{key:'sw6306_pd_pps_en', eq:false} },
+      { key:'sw6306_pd_pps2_en', title:'PPS2档位', ui:'switch', hidden:{key:'sw6306_pd_pps_en', eq:false} },
+      { key:'sw6306_pd_pps3_en', title:'PPS3档位', ui:'switch', hidden:{key:'sw6306_pd_pps_en', eq:false} },
+      { key:'sw6306_pd_pps0_ma', title:'PPS0电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA', hidden:{key:'sw6306_pd_pps_en', eq:false} },
+      { key:'sw6306_pd_pps1_ma', title:'PPS1电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA', hidden:{key:'sw6306_pd_pps_en', eq:false} },
+      { key:'sw6306_pd_pps2_ma', title:'PPS2电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA', hidden:{key:'sw6306_pd_pps_en', eq:false} },
+      { key:'sw6306_pd_pps3_ma', title:'PPS3电流', ui:'spinbox', min:500, max:5000, step:50, unit:'mA', hidden:{key:'sw6306_pd_pps_en', eq:false} },
     ]},
   ]},
 ]},
@@ -1088,6 +1247,9 @@ const SETTING_TREE = [
     { key:'bq_design_cap', title:'设计容量', ui:'spinbox', min:1000, max:9999, step:1, unit:'mAh' },
     { key:'bq_full_cap', title:'充满容量', ui:'label', unit:'mAh' },
     { key:'bq_remain_cap', title:'剩余容量', ui:'label', unit:'mAh' },
+    { key:'bq_design_mwh', title:'设计能量', ui:'spinbox', min:21600, max:74000, step:10, unit:'mWh' },
+    { key:'bq_full_mwh', title:'充满能量', ui:'label', unit:'mWh' },
+    { key:'bq_remain_mwh', title:'剩余能量', ui:'label', unit:'mWh' },
   ]},
   { title:'电压电流', children:[
     { key:'bq_pack_v', title:'PACK电压', ui:'label' },
@@ -1111,9 +1273,22 @@ const SETTING_TREE = [
 ]},
 ];
 let currentTop=0;        /* 当前顶级分组索引 */
+let navPath=[];          /* 钻取路径: 从顶级分组 children 起每级分支的索引(scr2 子菜单导航) */
 let settingSchemaFlat=[]; /* 扁平化后的所有叶子,供 onSettingChange 查找 */
+let valMap={};           /* 当前层级叶子 + hidden 依赖 key 的值 */
 let setEpoch=0;
 SETTING_TREE.forEach(top=> (function walk(n){ if(n.key) settingSchemaFlat.push(n); else if(n.children) n.children.forEach(walk); })(top));
+
+function currentLevelNode(){
+  let n = SETTING_TREE[currentTop];
+  for (const idx of navPath) n = n.children[idx];
+  return n;
+}
+
+/* hidden 判定: 依赖项的值等于 eq 时隐藏(语义同 scr2 的 hidden_condition) */
+function isNodeHidden(n){
+  return !!(n.hidden && valMap[n.hidden.key] === n.hidden.eq);
+}
 
 async function buildSettings(){
   const host = $('settings-host');
@@ -1122,41 +1297,66 @@ async function buildSettings(){
 
   if (currentTop < 0 || currentTop >= SETTING_TREE.length) currentTop = 0;
 
+  /* 校验 navPath 仍指向有效分支(树可能被编辑过) */
+  {
+    let n = SETTING_TREE[currentTop]; const valid=[];
+    for (const idx of navPath){
+      if (n.children && n.children[idx] && n.children[idx].children){ valid.push(idx); n=n.children[idx]; }
+      else break;
+    }
+    navPath = valid;
+  }
+  const level = currentLevelNode();
+  const kids = level.children || [];
+
   // tabs: 顶级分组来自 SETTING_TREE 的 title
   $('grp-tabs').innerHTML = SETTING_TREE.map((g,i)=>
     `<button class="grp-tab ${i===currentTop?'active':''}" data-top="${i}">${g.title}</button>`
   ).join('');
   $$('.grp-tab').forEach(b=> b.onclick = ()=>{
-    currentTop = parseInt(b.dataset.top); buildSettings();
+    currentTop = parseInt(b.dataset.top); navPath=[]; buildSettings();
   });
 
-  // 收集当前顶级分组下的所有叶子 key
-  const leaves = [];
-  (function walk(n){ if(n.key) leaves.push(n); else if(n.children) n.children.forEach(walk); })(SETTING_TREE[currentTop]);
+  /* 只拉取本层直接子叶 + hidden 依赖 key(依赖可能在其它分组,如 interface_mode)。
+     进入子菜单时才拉该子菜单的项,与 scr2 懒加载一致;
+     串行拉取: 并发会让设备端每帧 xTaskCreate 一个 6KB 栈的 rx_task,
+     瞬时分配过多触发 heap_caps_alloc_failed panic。 */
+  const leafKeys = new Set(), depKeys = new Set();
+  kids.forEach(c=>{ if (c.key) leafKeys.add(c.key); if (c.hidden) depKeys.add(c.hidden.key); });
+  const fetchKeys = [...leafKeys, ...[...depKeys].filter(k=>!leafKeys.has(k))];
 
-  // 串行拉取各项的值:
-  //   并发拉取会让设备端每帧 xTaskCreate 一个 6KB 栈的 rx_task,
-  //   大分组(SW6306V 等)瞬时分配过多,触发 heap_caps_alloc_failed panic。
-  const valMap = {};
+  valMap = {};
   const myEpoch = ++setEpoch;
-  for (const it of leaves){
-    if (myEpoch !== setEpoch) return; /* 已切换到其它分组,放弃 */
+  for (const k of fetchKeys){
+    if (myEpoch !== setEpoch) return; /* 已切换层级,放弃 */
     try{
-      const r = await call('get','config/'+it.key);
-      valMap[it.key] = (r && 'value' in r) ? r.value : undefined;
-    }catch(e){ logW('get '+it.key+': '+e); }
+      const r = await call('get','config/'+k);
+      valMap[k] = (r && 'value' in r) ? r.value : undefined;
+    }catch(e){ logW('get '+k+': '+e); }
   }
   if (myEpoch !== setEpoch) return;
 
-  // 递归渲染树:分支为可折叠的 <details>,叶子用 renderSettingRow
-  function renderNode(node){
-    if (node.key){
-      return renderSettingRow(node, valMap[node.key]);
-    }
-    const kids = (node.children||[]).map(renderNode).join('');
-    return `<details class="sub-section" open><summary>${node.title}</summary><div>${kids}</div></details>`;
+  /* 返回栏: 在子菜单内显示,点击回上一级 */
+  let html = '';
+  if (navPath.length){
+    html += `<div class="setting nav back" id="set-back"><div class="lbl">‹ ${level.title}</div><div class="ctrl"></div></div>`;
   }
-  host.innerHTML = (SETTING_TREE[currentTop].children||[]).map(renderNode).join('') || '<div style="padding:20px;color:var(--text-fade);text-align:center">空</div>';
+  html += kids.map((c,i)=>{
+    if (c.key) return renderSettingRow(c, valMap[c.key]);
+    const hdep = c.hidden ? ` data-hdep="${c.hidden.key}" data-heq="${c.hidden.eq}"` : '';
+    const style = isNodeHidden(c) ? ' style="display:none"' : '';
+    return `<div class="setting nav" data-nav="${i}"${hdep}${style}>
+      <div class="lbl">${c.title}</div>
+      <div class="ctrl"><span class="chev">›</span></div>
+    </div>`;
+  }).join('');
+  host.innerHTML = html || '<div style="padding:20px;color:var(--text-fade);text-align:center">空</div>';
+
+  const back = $('set-back');
+  if (back) back.onclick = ()=>{ navPath.pop(); buildSettings(); };
+  host.querySelectorAll('[data-nav]').forEach(el=>{
+    el.onclick = ()=>{ navPath.push(parseInt(el.dataset.nav)); buildSettings(); };
+  });
   host.querySelectorAll('[data-key]').forEach(el=>{
     el.addEventListener('change', ()=>onSettingChange(el));
   });
@@ -1177,11 +1377,15 @@ async function buildSettings(){
       });
     });
   });
-  logI('设置加载 ['+SETTING_TREE[currentTop].title+']: '+leaves.length+' 项');
+  logI('设置加载 ['+SETTING_TREE[currentTop].title+(navPath.length?' / '+level.title:'')+']: '+leafKeys.size+' 项');
 }
 
 function renderSettingRow(it, cur){
   const v = cur;
+  /* hidden 依赖标记 + 初始 display:none: 行始终在 DOM 中,
+     依赖项变化时由 onSettingChange 双向切换 display(HIDE->SHOW 也能生效) */
+  const hdep = it.hidden ? ` data-hdep="${it.hidden.key}" data-heq="${it.hidden.eq}"` : '';
+  const style = isNodeHidden(it) ? ' style="display:none"' : '';
   let editor='';
   if (it.ui === 'switch'){
     editor = `<label class="switch"><input type="checkbox" data-key="${it.key}" ${v?'checked':''}/><span class="slider"></span></label>`;
@@ -1200,7 +1404,7 @@ function renderSettingRow(it, cur){
               <span style="font-family:monospace;font-size:12px;min-width:32px;text-align:right" id="sv-${it.key}">${v??0}</span>`;
   } else if (it.ui === 'label'){
     const disp = (cur === undefined || cur === null || cur === '') ? '—' : String(cur);
-    return `<div class="setting"><div class="lbl">${it.title}</div><div class="ctrl"><span style="font-family:monospace;color:var(--cyan)">${disp}</span><span class="unit">${it.unit||''}</span></div></div>`;
+    return `<div class="setting"${hdep}${style}><div class="lbl">${it.title}</div><div class="ctrl"><span style="font-family:monospace;color:var(--cyan)">${disp}</span><span class="unit">${it.unit||''}</span></div></div>`;
   } else if (it.ui === 'spinbox'){
     /* 步进选择器: 仅允许按 step 增减, 禁止直接键入任意值 */
     const sv = (v === undefined || v === null) ? (it.min ?? 0) : v;
@@ -1213,7 +1417,7 @@ function renderSettingRow(it, cur){
     editor = `<input type="number" data-key="${it.key}" value="${v??0}" min="${it.min}" max="${it.max}" step="${it.step||1}"/>`;
   }
   const range = (it.options || it.ui === 'switch') ? '' : `<small>${it.min}~${it.max}${it.unit?' '+it.unit:''}</small>`;
-  return `<div class="setting">
+  return `<div class="setting"${hdep}${style}>
     <div class="lbl">${it.title}${range}</div>
     <div class="ctrl">${editor}<span class="unit">${it.unit||''}</span></div>
   </div>`;
@@ -1236,6 +1440,11 @@ async function onSettingChange(el){
   try{
     await call('set','config/'+key, {value});
     logI('SET '+key+' = '+JSON.stringify(value));
+    /* 更新本地值并动态显隐依赖本项的行/分支(data-hdep),无需整页重建 */
+    valMap[key] = value;
+    $('settings-host').querySelectorAll(`[data-hdep="${key}"]`).forEach(row=>{
+      row.style.display = (String(valMap[key]) === row.dataset.heq) ? 'none' : '';
+    });
   }catch(e){ logE('SET '+key+': '+e); }
 }
 
@@ -1292,6 +1501,24 @@ $('btn-clear-log').onclick = ()=>{ $('log').innerHTML=''; };
 $('btn-reload-set').onclick = buildSettings;
 $('btn-connect').onclick = ()=> connectBLE();
 
+/* OTA */
+$('ota-file').onchange = (e)=>{
+  otaState.file = e.target.files[0]||null;
+  $('ota-filename').textContent = otaState.file ? (otaState.file.name+' · '+(otaState.file.size/1024).toFixed(1)+' KB') : '';
+  otaRefreshUI();
+};
+$('btn-ota-start').onclick = otaStart;
+$('btn-ota-abort').onclick = async ()=>{ try{ await otaCall('abort'); }catch(e){} };
+$('btn-ota-fmt').onclick = async ()=>{
+  if (!confirm('确定格式化 storage2? 会清除所有日志和 OTA 文件(用于修复损坏的文件系统)。')) return;
+  try{
+    otaLog('格式化 storage2 (擦除+重建,约 30~60s)...', 'w');
+    const r = await otaCall('fmt');
+    otaLog('格式化完成: '+(r.status||''), 'i');
+    otaSetStatus('已格式化,可开始升级', 0);
+  }catch(e){ otaLog('格式化失败: '+(e.message||e), 'e'); }
+};
+
 // theme toggle
 $('btn-theme').onclick = ()=>{
   const dark = document.documentElement.dataset.theme !== 'light';
@@ -1299,6 +1526,64 @@ $('btn-theme').onclick = ()=>{
   $('btn-theme').textContent = dark ? '☀️' : '🌙';
   drawChart();
 };
+
+/* logo 长按 -> 密码管理弹窗(PW.设置 / PWC.清除, 设备端校验) */
+(function(){
+  const logo = $('logo');
+  if (!logo) return;
+  let timer = null, sx = 0, sy = 0;
+  const end = ()=>{ if (timer){ clearTimeout(timer); timer = null; } };
+  logo.addEventListener('pointerdown', e=>{
+    sx = e.clientX; sy = e.clientY;
+    timer = setTimeout(()=>{ timer = null; openPwModal(); }, 700);
+  });
+  logo.addEventListener('pointermove', e=>{
+    if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 12) end();
+  });
+  logo.addEventListener('pointerup', end);
+  logo.addEventListener('pointercancel', end);
+  logo.addEventListener('pointerleave', end);
+  logo.addEventListener('contextmenu', e=>e.preventDefault());
+})();
+function openPwModal(){
+  $('pw-input').value = '';
+  $('pw-modal').classList.add('show');
+  setTimeout(()=>$('pw-input').focus(), 50);
+}
+function closePwModal(){ $('pw-modal').classList.remove('show'); }
+$('pw-cancel').onclick = closePwModal;
+$('pw-modal').addEventListener('click', e=>{ if (e.target === $('pw-modal')) closePwModal(); });
+$('pw-input').addEventListener('keydown', e=>{ if (e.key === 'Enter') $('pw-ok').click(); });
+$('pw-ok').onclick = async ()=>{
+  const v = $('pw-input').value.trim();
+  if (!v) return;
+
+  /* 校验: 仅接受 PW.<密码>(设置,1-16位) / PWC.<密码>(清除,1-16位) */
+  let action = null, pwd = '';
+  if (v.startsWith('PW.'))      { action = 'set';   pwd = v.slice(3); }
+  else if (v.startsWith('PWC.')) { action = 'clear'; pwd = v.slice(4); }
+  if (!action || !pwd || pwd.length > 16){
+    alert('命令格式错误');
+    return;
+  }
+
+  if (!rxChr){ alert('请先连接设备'); return; }
+  try{
+    await call('set','config/limit_pw', {value: v});
+    if (action === 'set'){
+      logI('已设置受限模式密码');
+      alert('已开启受限模式');
+    }else{
+      logI('已清除受限模式密码');
+      alert('已解除受限模式');
+    }
+    closePwModal();
+  }catch(e){
+    logE('命令失败: '+(e.message||e));
+    alert(action === 'clear' ? '清除失败: 原密码不匹配' : '操作失败: '+(e.message||e));
+  }
+};
+
 
 logI('ZHP2D Console Ready · '+new Date().toLocaleString());
 setConnUI(false);
