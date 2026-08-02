@@ -14,6 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="ZHP2D" />
 
 <title>ZHP2D · 蓝牙控制台</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css" />
 <style>
   :root{
     --bg-0:#05080f;
@@ -50,7 +51,7 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0;background:var(--bg-0);color:var(--text);
-    font-family:'SF Pro Display','PingFang SC','Segoe UI',system-ui,sans-serif;
+    font-family:'SF Pro Display','LXGW WenKai','PingFang SC','Segoe UI',system-ui,sans-serif;
     font-size:14px;letter-spacing:.01em;overflow-x:hidden;
     min-height:100vh;
   }
@@ -192,7 +193,7 @@
     display:grid;grid-template-columns:1fr 140px;gap:14px;align-items:center;
   }
   .hero .pwr{
-    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:42px;line-height:1;
+    font-weight:700;font-size:42px;line-height:1;
     background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
     text-shadow:0 0 30px rgba(34,230,255,.25);
   }
@@ -210,7 +211,7 @@
     position:absolute;inset:0;display:grid;place-items:center;text-align:center;
   }
   .ring-center .soc{
-    font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;
+    font-size:28px;font-weight:700;
     background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
   }
   .ring-center .soc small{font-size:13px;color:var(--text-dim);margin-left:2px;-webkit-text-fill-color:var(--text-dim)}
@@ -653,6 +654,23 @@
     </div>
     <div id="ota-log" style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);line-height:1.6;max-height:140px;overflow:auto;white-space:pre-wrap"></div>
   </div>
+
+    <!-- ===== Config Export / Import ===== -->
+    <div class="card" id="config-card" style="display:none">
+      <div class="card-title"><span>CONFIG BACKUP</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn" id="btn-export-cfg">导出配置</button>
+        <button class="btn ghost" id="btn-import-cfg" style="background:transparent;color:var(--cyan);border:1px solid var(--cyan);box-shadow:none">导入配置</button>
+        <span id="cfg-status" style="font-size:11px;color:var(--text-dim);align-self:center;margin-left:4px"></span>
+      </div>
+      <div id="import-area" style="display:none">
+        <textarea id="cfg-textarea" rows="6" style="width:100%;background:rgba(0,0,0,.4);border:1px solid var(--line-strong);color:var(--text);padding:10px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;resize:vertical" placeholder="粘贴之前导出的配置 JSON ..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" id="btn-apply-cfg">应用配置</button>
+          <button class="btn ghost" id="btn-cancel-cfg" style="background:transparent;color:var(--text-dim);border:1px solid var(--line-strong);box-shadow:none">取消</button>
+        </div>
+      </div>
+    </div>
 </section>
 
 </main>
@@ -714,6 +732,7 @@ function setConnUI(on){
   $('ble-text').textContent = on ? 'ONLINE' : 'OFFLINE';
   $('connect-card').style.display = on ? 'none' : 'block';
   $('dash-content').style.display = on ? 'block' : 'none';
+  var cc = $('config-card'); if (cc) cc.style.display = on ? 'block' : 'none';
   if (!on){
     $('settings-host').innerHTML =
       '<div style="padding:30px 0;text-align:center;color:var(--text-fade);font-size:12px">未连接设备</div>';
@@ -952,7 +971,7 @@ function renderTele(d){
   // hero
   const bv=(d.bus.v/1000), bi=(d.bus.i/1000), bp=(d.bus.p/1000);
   // 使用 BUS 实时功率显示输出功率（W）
-  $('pwr-val').textContent = bp.toFixed(1);
+  $('pwr-val').textContent = bp.toFixed(3);
   const av=(d.bat.v/1000), ai=(d.bat.i/1000), ap=(d.bat.p/1000);
   $('bus-vi').textContent = bv.toFixed(3)+'V / '+bi.toFixed(3)+'A';
   $('bat-vi').textContent = av.toFixed(3)+'V / '+ai.toFixed(3)+'A';
@@ -1518,6 +1537,113 @@ $('btn-ota-fmt').onclick = async ()=>{
     otaSetStatus('已格式化,可开始升级', 0);
   }catch(e){ otaLog('格式化失败: '+(e.message||e), 'e'); }
 };
+
+/* ===================== Config Export / Import ===================== */
+function showConfigCard(){
+  var el = $('config-card'); if (el) el.style.display = connected ? 'block' : 'none';
+}
+
+async function exportConfig(){
+  if (!connected) { logW('请先连接设备'); return; }
+  $('cfg-status').textContent = '导出中...';
+
+  // Build hidden-dependency map from SETTING_TREE: key -> {dep, eq}
+  var hiddenDeps = {};
+  (function walk(nodes){
+    nodes.forEach(function(n){
+      if (n.key && n.hidden) hiddenDeps[n.key] = {dep:n.hidden.key, eq:n.hidden.eq};
+      if (n.children) walk(n.children);
+    });
+  })(SETTING_TREE);
+
+  var keys = settingSchemaFlat.filter(function(s){ return s.key && s.ui !== 'label'; }).map(function(s){ return s.key; });
+  var cfg = {};
+  var done = 0;
+
+  // Fetch all values
+  for (var i = 0; i < keys.length; i++){
+    var k = keys[i];
+    try{
+      var r = await call('get','config/'+k);
+      cfg[k] = (r && 'value' in r) ? r.value : undefined;
+    }catch(e){ cfg[k] = undefined; }
+    done++;
+    $('cfg-status').textContent = '导出中 '+done+'/'+keys.length+'...';
+  }
+
+  // Filter: exclude keys whose hidden dependency is met (parent switch off)
+  // Also handles transitive: if parent is excluded, child is excluded too
+  var excluded = {};
+  function isHidden(key){
+    if (excluded[key]) return true;
+    var hd = hiddenDeps[key];
+    if (!hd) return false;
+    if (cfg[hd.dep] === hd.eq || isHidden(hd.dep)) { excluded[key] = true; return true; }
+    return false;
+  }
+
+  var out = {};
+  var skipped = 0;
+  Object.keys(cfg).forEach(function(k){
+    if (cfg[k] === undefined || cfg[k] === null || isHidden(k)) skipped++;
+    else out[k] = cfg[k];
+  });
+
+  var json = JSON.stringify(out, null, 2);
+  try{
+    await navigator.clipboard.writeText(json);
+    $('cfg-status').textContent = '\u2713 已复制 '+Object.keys(out).length+' 项 '+(skipped?'(跳过 '+skipped+' 项)':'')+' 到剪贴板';
+  }catch(e){
+    $('cfg-textarea').value = json;
+    $('import-area').style.display = 'block';
+    $('cfg-status').textContent = '\u2713 已生成 '+Object.keys(out).length+' 项 (点击下方复制)';
+  }
+  logI('配置已导出: '+Object.keys(out).length+' 项'+(skipped?' (跳过 '+skipped+' 项)':''));
+}
+function showImportArea(){
+  $('import-area').style.display = 'block';
+  $('cfg-textarea').value = '';
+  $('cfg-status').textContent = '';
+}
+function hideImportArea(){
+  $('import-area').style.display = 'none';
+  $('cfg-textarea').value = '';
+}
+
+async function applyConfig(){
+  if (!connected) { logW('请先连接设备'); return; }
+  var raw = $('cfg-textarea').value.trim();
+  if (!raw) { $('cfg-status').textContent = '请先粘贴配置 JSON'; return; }
+  var cfg;
+  try{ cfg = JSON.parse(raw); }catch(e){ $('cfg-status').textContent = 'JSON 解析失败'; return; }
+  // Accept both simple {key:val} and wrapped {values:{key:val}} formats
+  var values = cfg.values || cfg;
+  var entries = Object.entries(values).filter(function(e){
+    var v = e[1]; return v !== null && v !== undefined && (typeof v !== 'object' || Array.isArray(v));
+  });
+  if (!entries.length){ $('cfg-status').textContent = '未找到有效配置项'; return; }
+  $('cfg-status').textContent = '导入中...';
+  var ok = 0, fail = 0;
+  for (var i = 0; i < entries.length; i++){
+    var k = entries[i][0], v = entries[i][1];
+    try{
+      await call('set','config/'+k, {value:v});
+      valMap[k] = v;
+      ok++;
+    }catch(e){ fail++; logW('IMPORT '+k+': '+e); }
+    $('cfg-status').textContent = '导入中 '+(ok+fail)+'/'+entries.length+'...';
+  }
+  $('cfg-status').textContent = '\u2713 成功 '+ok + (fail?' 失败 '+fail:'') + ' / '+entries.length+' 项';
+  logI('配置导入完成: '+ok+'/'+entries.length);
+  if (typeof buildSettings === 'function') buildSettings();
+  hideImportArea();
+}
+
+$('btn-export-cfg').onclick = exportConfig;
+$('btn-import-cfg').onclick = showImportArea;
+$('btn-apply-cfg').onclick = applyConfig;
+$('btn-cancel-cfg').onclick = hideImportArea;
+
 
 // theme toggle
 $('btn-theme').onclick = ()=>{
