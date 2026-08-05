@@ -1557,8 +1557,111 @@ var KEY_MAP = (function(){
 })();
 
 /* ===================== Config Export / Import ===================== */
+
+/* KEY_MAP: ordered array of all exportable setting keys, with hidden dependency info.
+   Position in this array is the short ID used in compact export format. */
+var KEY_MAP = (function(){
+  var map=[], deps={};
+  (function walk(nodes){
+    nodes.forEach(function(n){
+      if (n.key && n.ui !== 'label'){
+        var idx = map.length;
+        map.push(n.key);
+        if (n.hidden) deps[idx] = {dep:n.hidden.key, eq:n.hidden.eq};
+      }
+      if (n.children) walk(n.children);
+    });
+  })(SETTING_TREE);
+  map._deps = deps;
+  return map;
+})();
+
 function showConfigCard(){
   var el = $('config-card'); if (el) el.style.display = connected ? 'block' : 'none';
+}
+
+// --- Binary pack / unpack helpers ---
+function packBits(vals){
+  // Pack values into a bitstream. Each value uses the minimum bits from its schema range.
+  var bits = '';
+  for (var i = 0; i < KEY_MAP.length; i++){
+    var key = KEY_MAP[i], v = vals[i];
+    if (v === undefined || v === null){ bits += '1'; continue; } // null flag
+    bits += '0'; // not-null flag
+    var sch = settingSchemaFlat.find(function(s){ return s.key === key; });
+    if (!sch){ bits += '0'; continue; }
+    if (sch.ui === 'switch'){ bits += v ? '1' : '0'; }
+    else if (sch.ui === 'roller' && sch.options){
+      var optLen = sch.options.length;
+      var idx = (typeof v === 'number') ? v : sch.options.indexOf(String(v));
+      if (idx < 0) idx = 0;
+      var w = Math.ceil(Math.log2(optLen)) || 1;
+      bits += idx.toString(2).padStart(w, '0');
+    } else if (sch.ui === 'range' && Array.isArray(v)){
+      var lo = v[0]||0, hi = v[1]||0;
+      bits += lo.toString(2).padStart(8, '0');
+      bits += hi.toString(2).padStart(8, '0');
+    } else {
+      // Number: determine range and encode as scaled integer
+      var min = sch.min || 0, max = sch.max || 65535, step = sch.step || 1;
+      var num = (typeof v === 'number') ? v : 0;
+      var scaled = Math.round((num - min) / step);
+      if (scaled < 0) scaled = 0;
+      var range = Math.round((max - min) / step);
+      var w = Math.ceil(Math.log2(range + 1)) || 1;
+      if (w > 24) w = 24;
+      bits += scaled.toString(2).padStart(w, '0');
+    }
+  }
+  // Pad to byte boundary
+  var pad = (8 - bits.length % 8) % 8;
+  bits += '0'.repeat(pad);
+  // Convert to Uint8Array
+  var bytes = new Uint8Array(bits.length / 8);
+  for (var i = 0; i < bytes.length; i++){
+    bytes[i] = parseInt(bits.substring(i*8, i*8+8), 2);
+  }
+  return bytes;
+}
+
+function unpackBits(bytes, count){
+  // Unpack bytes back to values array
+  var bits = '';
+  for (var i = 0; i < bytes.length; i++){
+    bits += bytes[i].toString(2).padStart(8, '0');
+  }
+  var pos = 0;
+  var vals = [];
+  for (var i = 0; i < count; i++){
+    if (pos >= bits.length){ vals.push(null); continue; }
+    var isNull = bits[pos] === '1'; pos++;
+    if (isNull){ vals.push(null); continue; }
+    var key = KEY_MAP[i];
+    var sch = settingSchemaFlat.find(function(s){ return s.key === key; });
+    if (!sch){ vals.push(null); pos++; continue; }
+    if (sch.ui === 'switch'){
+      vals.push(bits[pos] === '1'); pos++;
+    } else if (sch.ui === 'roller' && sch.options){
+      var optLen = sch.options.length;
+      var w = Math.ceil(Math.log2(optLen)) || 1;
+      var idx = parseInt(bits.substring(pos, pos+w), 2);
+      pos += w;
+      vals.push(idx);
+    } else if (sch.ui === 'range'){
+      var lo = parseInt(bits.substring(pos, pos+8), 2); pos += 8;
+      var hi = parseInt(bits.substring(pos, pos+8), 2); pos += 8;
+      vals.push([lo, hi]);
+    } else {
+      var min = sch.min || 0, max = sch.max || 65535, step = sch.step || 1;
+      var range = Math.round((max - min) / step);
+      var w = Math.ceil(Math.log2(range + 1)) || 1;
+      if (w > 24) w = 24;
+      var scaled = parseInt(bits.substring(pos, pos+w), 2);
+      pos += w;
+      vals.push(Math.round((scaled * step + min) * 100) / 100);
+    }
+  }
+  return vals;
 }
 
 async function exportConfig(){
@@ -1583,26 +1686,27 @@ async function exportConfig(){
     if (!hd) return false;
     var depIdx = KEY_MAP.indexOf(hd.dep);
     if (depIdx < 0) return false;
-    if (vals[depIdx] === hd.eq || isHidden(depIdx)) { hidden[idx] = true; return true; }
+    if (vals[depIdx] === hd.eq || isHidden(depIdx)){ hidden[idx]=true; return true; }
     return false;
   }
-  // Build compact array, replacing hidden slots with null (keeps position)
-  var out = [], skipped = 0;
+  var skipped = 0;
   for (var i = 0; i < vals.length; i++){
-    if (vals[i] === undefined || vals[i] === null || isHidden(i)){ out.push(null); skipped++; }
-    else out.push(vals[i]);
+    if (vals[i] === undefined || vals[i] === null || isHidden(i)){ vals[i]=null; skipped++; }
   }
-  var json = JSON.stringify(out);
+  // Binary pack then base64
+  var packed = packBits(vals);
+  var b64 = btoa(String.fromCharCode.apply(null, packed));
   try{
-    await navigator.clipboard.writeText(json);
-    $('cfg-status').textContent = '\u2713 已复制 '+KEY_MAP.length+' 项'+(skipped?' (跳过 '+skipped+')':'')+' 到剪贴板';
+    await navigator.clipboard.writeText(b64);
+    $('cfg-status').textContent = '\u2713 '+b64.length+' 字符 ('+KEY_MAP.length+' 项'+(skipped?' 跳过'+skipped:'')+')';
   }catch(e){
-    $('cfg-textarea').value = json;
+    $('cfg-textarea').value = b64;
     $('import-area').style.display = 'block';
-    $('cfg-status').textContent = '\u2713 已生成 (点击下方复制)';
+    $('cfg-status').textContent = '\u2713 已生成 '+b64.length+' 字符 (点击复制)';
   }
-  logI('配置已导出: '+KEY_MAP.length+' 项');
+  logI('配置已导出: '+b64.length+' chars, '+KEY_MAP.length+' 项');
 }
+
 function showImportArea(){
   $('import-area').style.display = 'block';
   $('cfg-textarea').value = '';
@@ -1617,24 +1721,46 @@ async function applyConfig(){
   if (!connected) { logW('请先连接设备'); return; }
   var raw = $('cfg-textarea').value.trim();
   if (!raw) { $('cfg-status').textContent = '请先粘贴配置'; return; }
-  var cfg;
-  try{ cfg = JSON.parse(raw); }catch(e){ $('cfg-status').textContent = 'JSON 解析失败'; return; }
+
+  var vals;
+  // Try base64 binary format first, then JSON array, then JSON object
+  if (/^[A-Za-z0-9+/=]+$/.test(raw) && raw.length < 500){
+    try{
+      var bytes = new Uint8Array(raw.length);
+      for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      // Binary packed format: atob
+      try{
+        var bin = atob(raw);
+        var binBytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) binBytes[i] = bin.charCodeAt(i);
+        vals = unpackBits(binBytes, KEY_MAP.length);
+      }catch(e2){ vals = unpackBits(bytes, KEY_MAP.length); }
+    }catch(e){ vals = null; }
+  }
+  if (!vals){
+    try{
+      var cfg = JSON.parse(raw);
+      if (Array.isArray(cfg)){
+        vals = [];
+        for (var i = 0; i < cfg.length && i < KEY_MAP.length; i++){
+          vals.push(cfg[i]);
+        }
+      } else {
+        // Legacy key-value format
+        var values = cfg.values || cfg;
+        vals = new Array(KEY_MAP.length);
+        for (var i = 0; i < KEY_MAP.length; i++){
+          var v = values[KEY_MAP[i]];
+          vals[i] = (v !== undefined) ? v : null;
+        }
+      }
+    }catch(e){ $('cfg-status').textContent = '无法解析配置'; return; }
+  }
+  if (!vals || !vals.length){ $('cfg-status').textContent = '未找到有效配置项'; return; }
 
   var entries = [];
-  if (Array.isArray(cfg)){
-    // Compact array format: position = KEY_MAP index
-    for (var i = 0; i < cfg.length && i < KEY_MAP.length; i++){
-      if (cfg[i] !== null && cfg[i] !== undefined) entries.push([KEY_MAP[i], cfg[i]]);
-    }
-  } else {
-    // Legacy key-value format
-    var values = cfg.values || cfg;
-    var objKeys = Object.keys(values);
-    for (var i = 0; i < objKeys.length; i++){
-      var v = values[objKeys[i]];
-      if (v !== null && v !== undefined && (typeof v !== 'object' || Array.isArray(v)))
-        entries.push([objKeys[i], v]);
-    }
+  for (var i = 0; i < vals.length && i < KEY_MAP.length; i++){
+    if (vals[i] !== null && vals[i] !== undefined) entries.push([KEY_MAP[i], vals[i]]);
   }
   if (!entries.length){ $('cfg-status').textContent = '未找到有效配置项'; return; }
   $('cfg-status').textContent = '导入中...';
@@ -1653,11 +1779,11 @@ async function applyConfig(){
   if (typeof buildSettings === 'function') buildSettings();
   hideImportArea();
 }
+
 $('btn-export-cfg').onclick = exportConfig;
 $('btn-import-cfg').onclick = showImportArea;
 $('btn-apply-cfg').onclick = applyConfig;
 $('btn-cancel-cfg').onclick = hideImportArea;
-
 
 // theme toggle
 $('btn-theme').onclick = ()=>{
