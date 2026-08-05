@@ -330,8 +330,12 @@
   .spinbox .sp-btn:active{background:rgba(34,230,255,.22);transform:scale(.92)}
   .spinbox .sp-val{
     min-width:54px;padding:0 8px;text-align:center;font-family:'JetBrains Mono',monospace;
-    font-size:13px;color:var(--text);border-left:1px solid var(--line);
-    border-right:1px solid var(--line);background:rgba(0,0,0,.2);line-height:28px;
+    font-size:13px;color:var(--text);border-top:none;border-bottom:none;
+    border-left:1px solid var(--line);border-right:1px solid var(--line);
+    background:rgba(0,0,0,.2);line-height:28px;outline:none;
+  }
+  .spinbox .sp-val:focus{
+    background:rgba(34,230,255,.08);border-color:var(--cyan);
   }
 
   /* Buttons */
@@ -1384,19 +1388,42 @@ async function buildSettings(){
   });
   /* spinbox: 点击 +/- 按 step 步进并 clamp 到 [min,max], 然后触发写入 */
   host.querySelectorAll('.spinbox').forEach(sb=>{
+    var input = sb.querySelector('.sp-val');
+    function updateSpin(val){
+      var step = parseFloat(sb.dataset.step);
+      var min = parseFloat(sb.dataset.min);
+      var max = parseFloat(sb.dataset.max);
+      if (Number.isFinite(min) && val < min) val = min;
+      if (Number.isFinite(max) && val > max) val = max;
+      val = Math.round(val / step) * step;
+      sb.dataset.val = val;
+      input.value = val;
+    }
     sb.querySelectorAll('.sp-btn').forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        const dir = parseInt(btn.dataset.dir);
-        const step = parseFloat(sb.dataset.step);
-        const min = parseFloat(sb.dataset.min);
-        const max = parseFloat(sb.dataset.max);
-        let val = parseFloat(sb.dataset.val) + dir * step;
-        if (Number.isFinite(min) && val < min) val = min;
-        if (Number.isFinite(max) && val > max) val = max;
-        sb.dataset.val = val;
-        sb.querySelector('.sp-val').textContent = val;
+        var dir = parseInt(btn.dataset.dir);
+        var step = parseFloat(sb.dataset.step);
+        var cur = parseFloat(sb.dataset.val) || parseFloat(input.value) || 0;
+        updateSpin(cur + dir * step);
         onSettingChange(sb);
       });
+    });
+    // Direct keyboard input
+    input.addEventListener('keydown', function(e){
+      if (e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+    });
+    input.addEventListener('blur', function(){
+      var step = parseFloat(sb.dataset.step);
+      var min = parseFloat(sb.dataset.min);
+      var max = parseFloat(sb.dataset.max);
+      var raw = parseFloat(input.value);
+      if (isNaN(raw)){ input.value = sb.dataset.val; return; }
+      var val = Math.round(raw / step) * step;
+      if (Number.isFinite(min) && val < min) val = min;
+      if (Number.isFinite(max) && val > max) val = max;
+      sb.dataset.val = val;
+      input.value = val;
+      onSettingChange(sb);
     });
   });
   logI('设置加载 ['+SETTING_TREE[currentTop].title+(navPath.length?' / '+level.title:'')+']: '+leafKeys.size+' 项');
@@ -1432,7 +1459,7 @@ function renderSettingRow(it, cur){
     const sv = (v === undefined || v === null) ? (it.min ?? 0) : v;
     editor = `<div class="spinbox" data-key="${it.key}" data-val="${sv}" data-min="${it.min}" data-max="${it.max}" data-step="${it.step||1}">
       <button class="sp-btn" data-dir="-1" type="button">−</button>
-      <span class="sp-val">${sv}</span>
+      <input type="text" inputmode="decimal" class="sp-val" value="${sv}">
       <button class="sp-btn" data-dir="1" type="button">+</button>
     </div>`;
   } else {
