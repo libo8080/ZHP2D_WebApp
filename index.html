@@ -1575,6 +1575,7 @@ var KEY_MAP = (function(){
   map._deps = deps;
   return map;
 })();
+var lastExport = '';
 
 function showConfigCard(){
   var el = $('config-card'); if (el) el.style.display = connected ? 'block' : 'none';
@@ -1784,6 +1785,41 @@ $('btn-export-cfg').onclick = exportConfig;
 $('btn-import-cfg').onclick = showImportArea;
 $('btn-apply-cfg').onclick = applyConfig;
 $('btn-cancel-cfg').onclick = hideImportArea;
+
+function downloadCfg(){
+  if (!lastExport){
+    $('cfg-status').textContent = '请先导出配置';
+    return;
+  }
+  var blob = new Blob([lastExport], {type:'text/plain;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'ZHP2D_config_' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '.txt';
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  $('cfg-status').textContent = '\u2713 TXT 已下载';
+}
+
+function loadCfgFile(){
+  $('cfg-file-input').click();
+}
+
+$('btn-download-cfg').onclick = downloadCfg;
+$('btn-load-cfg').onclick = loadCfgFile;
+
+$('cfg-file-input').onchange = function(e){
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    $('cfg-textarea').value = ev.target.result;
+    $('import-area').style.display = 'block';
+    $('cfg-status').textContent = '\u2713 已载入 ' + file.name + ' (' + file.size + ' 字节)';
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
 
 // theme toggle
 $('btn-theme').onclick = ()=>{
