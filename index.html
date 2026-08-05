@@ -1700,6 +1700,7 @@ async function exportConfig(){
   // Binary pack then base64
   var packed = packBits(vals);
   var b64 = btoa(String.fromCharCode.apply(null, packed));
+  lastExport = b64;
   try{
     await navigator.clipboard.writeText(b64);
     $('cfg-status').textContent = '\u2713 '+b64.length+' 字符 ('+KEY_MAP.length+' 项'+(skipped?' 跳过'+skipped:'')+')';
