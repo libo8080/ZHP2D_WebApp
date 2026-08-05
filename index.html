@@ -1538,6 +1538,24 @@ $('btn-ota-fmt').onclick = async ()=>{
   }catch(e){ otaLog('格式化失败: '+(e.message||e), 'e'); }
 };
 
+/* KEY_MAP: ordered array of all exportable setting keys, with hidden dependency info.
+   Position in this array is the short ID used in compact export format. */
+var KEY_MAP = (function(){
+  var map=[], deps={};
+  (function walk(nodes){
+    nodes.forEach(function(n){
+      if (n.key && n.ui !== 'label'){
+        var idx = map.length;
+        map.push(n.key);
+        if (n.hidden) deps[idx] = {dep:n.hidden.key, eq:n.hidden.eq};
+      }
+      if (n.children) walk(n.children);
+    });
+  })(SETTING_TREE);
+  map._deps = deps;
+  return map;
+})();
+
 /* ===================== Config Export / Import ===================== */
 function showConfigCard(){
   var el = $('config-card'); if (el) el.style.display = connected ? 'block' : 'none';
@@ -1546,59 +1564,44 @@ function showConfigCard(){
 async function exportConfig(){
   if (!connected) { logW('请先连接设备'); return; }
   $('cfg-status').textContent = '导出中...';
-
-  // Build hidden-dependency map from SETTING_TREE: key -> {dep, eq}
-  var hiddenDeps = {};
-  (function walk(nodes){
-    nodes.forEach(function(n){
-      if (n.key && n.hidden) hiddenDeps[n.key] = {dep:n.hidden.key, eq:n.hidden.eq};
-      if (n.children) walk(n.children);
-    });
-  })(SETTING_TREE);
-
-  var keys = settingSchemaFlat.filter(function(s){ return s.key && s.ui !== 'label'; }).map(function(s){ return s.key; });
-  var cfg = {};
+  var vals = new Array(KEY_MAP.length);
   var done = 0;
-
-  // Fetch all values
-  for (var i = 0; i < keys.length; i++){
-    var k = keys[i];
+  for (var i = 0; i < KEY_MAP.length; i++){
     try{
-      var r = await call('get','config/'+k);
-      cfg[k] = (r && 'value' in r) ? r.value : undefined;
-    }catch(e){ cfg[k] = undefined; }
+      var r = await call('get','config/'+KEY_MAP[i]);
+      vals[i] = (r && 'value' in r) ? r.value : undefined;
+    }catch(e){ vals[i] = undefined; }
     done++;
-    $('cfg-status').textContent = '导出中 '+done+'/'+keys.length+'...';
+    $('cfg-status').textContent = '导出中 '+done+'/'+KEY_MAP.length+'...';
   }
-
-  // Filter: exclude keys whose hidden dependency is met (parent switch off)
-  // Also handles transitive: if parent is excluded, child is excluded too
-  var excluded = {};
-  function isHidden(key){
-    if (excluded[key]) return true;
-    var hd = hiddenDeps[key];
+  // Filter hidden-dependent items
+  var deps = KEY_MAP._deps;
+  var hidden = {};
+  function isHidden(idx){
+    if (hidden[idx]) return true;
+    var hd = deps[idx];
     if (!hd) return false;
-    if (cfg[hd.dep] === hd.eq || isHidden(hd.dep)) { excluded[key] = true; return true; }
+    var depIdx = KEY_MAP.indexOf(hd.dep);
+    if (depIdx < 0) return false;
+    if (vals[depIdx] === hd.eq || isHidden(depIdx)) { hidden[idx] = true; return true; }
     return false;
   }
-
-  var out = {};
-  var skipped = 0;
-  Object.keys(cfg).forEach(function(k){
-    if (cfg[k] === undefined || cfg[k] === null || isHidden(k)) skipped++;
-    else out[k] = cfg[k];
-  });
-
-  var json = JSON.stringify(out, null, 2);
+  // Build compact array, replacing hidden slots with null (keeps position)
+  var out = [], skipped = 0;
+  for (var i = 0; i < vals.length; i++){
+    if (vals[i] === undefined || vals[i] === null || isHidden(i)){ out.push(null); skipped++; }
+    else out.push(vals[i]);
+  }
+  var json = JSON.stringify(out);
   try{
     await navigator.clipboard.writeText(json);
-    $('cfg-status').textContent = '\u2713 已复制 '+Object.keys(out).length+' 项 '+(skipped?'(跳过 '+skipped+' 项)':'')+' 到剪贴板';
+    $('cfg-status').textContent = '\u2713 已复制 '+KEY_MAP.length+' 项'+(skipped?' (跳过 '+skipped+')':'')+' 到剪贴板';
   }catch(e){
     $('cfg-textarea').value = json;
     $('import-area').style.display = 'block';
-    $('cfg-status').textContent = '\u2713 已生成 '+Object.keys(out).length+' 项 (点击下方复制)';
+    $('cfg-status').textContent = '\u2713 已生成 (点击下方复制)';
   }
-  logI('配置已导出: '+Object.keys(out).length+' 项'+(skipped?' (跳过 '+skipped+' 项)':''));
+  logI('配置已导出: '+KEY_MAP.length+' 项');
 }
 function showImportArea(){
   $('import-area').style.display = 'block';
@@ -1613,14 +1616,26 @@ function hideImportArea(){
 async function applyConfig(){
   if (!connected) { logW('请先连接设备'); return; }
   var raw = $('cfg-textarea').value.trim();
-  if (!raw) { $('cfg-status').textContent = '请先粘贴配置 JSON'; return; }
+  if (!raw) { $('cfg-status').textContent = '请先粘贴配置'; return; }
   var cfg;
   try{ cfg = JSON.parse(raw); }catch(e){ $('cfg-status').textContent = 'JSON 解析失败'; return; }
-  // Accept both simple {key:val} and wrapped {values:{key:val}} formats
-  var values = cfg.values || cfg;
-  var entries = Object.entries(values).filter(function(e){
-    var v = e[1]; return v !== null && v !== undefined && (typeof v !== 'object' || Array.isArray(v));
-  });
+
+  var entries = [];
+  if (Array.isArray(cfg)){
+    // Compact array format: position = KEY_MAP index
+    for (var i = 0; i < cfg.length && i < KEY_MAP.length; i++){
+      if (cfg[i] !== null && cfg[i] !== undefined) entries.push([KEY_MAP[i], cfg[i]]);
+    }
+  } else {
+    // Legacy key-value format
+    var values = cfg.values || cfg;
+    var objKeys = Object.keys(values);
+    for (var i = 0; i < objKeys.length; i++){
+      var v = values[objKeys[i]];
+      if (v !== null && v !== undefined && (typeof v !== 'object' || Array.isArray(v)))
+        entries.push([objKeys[i], v]);
+    }
+  }
   if (!entries.length){ $('cfg-status').textContent = '未找到有效配置项'; return; }
   $('cfg-status').textContent = '导入中...';
   var ok = 0, fail = 0;
@@ -1638,7 +1653,6 @@ async function applyConfig(){
   if (typeof buildSettings === 'function') buildSettings();
   hideImportArea();
 }
-
 $('btn-export-cfg').onclick = exportConfig;
 $('btn-import-cfg').onclick = showImportArea;
 $('btn-apply-cfg').onclick = applyConfig;
