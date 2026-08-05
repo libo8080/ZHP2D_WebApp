@@ -660,9 +660,12 @@
       <div class="card-title"><span>CONFIG BACKUP</span></div>
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <button class="btn" id="btn-export-cfg">导出配置</button>
+        <button class="btn" id="btn-download-cfg" style="background:var(--violet);color:#fff;box-shadow:0 6px 16px -6px var(--violet)">下载TXT</button>
         <button class="btn ghost" id="btn-import-cfg" style="background:transparent;color:var(--cyan);border:1px solid var(--cyan);box-shadow:none">导入配置</button>
+        <button class="btn ghost" id="btn-load-cfg" style="background:transparent;color:var(--green);border:1px solid var(--green);box-shadow:none">打开TXT</button>
         <span id="cfg-status" style="font-size:11px;color:var(--text-dim);align-self:center;margin-left:4px"></span>
       </div>
+      <input type="file" id="cfg-file-input" accept=".txt,.json" style="display:none">
       <div id="import-area" style="display:none">
         <textarea id="cfg-textarea" rows="6" style="width:100%;background:rgba(0,0,0,.4);border:1px solid var(--line-strong);color:var(--text);padding:10px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;resize:vertical" placeholder="粘贴之前导出的配置 JSON ..."></textarea>
         <div style="display:flex;gap:8px;margin-top:8px">
