@@ -542,6 +542,7 @@
         <div class="kpi warm"><div class="lbl">BAT I</div><div class="val"><span id="k-bati">0.000</span><span class="unit">A</span></div></div>
         <div class="kpi"><div class="lbl">BUS P</div><div class="val"><span id="k-busp">0.00</span><span class="unit">W</span></div></div>
         <div class="kpi warm"><div class="lbl">BAT P</div><div class="val"><span id="k-batp">0.00</span><span class="unit">W</span></div></div>
+        <div class="kpi warm"><div class="lbl">OUT PW</div><div class="val"><span id="k-outpw">--</span><span class="unit">W</span></div></div>
         <div class="kpi green"><div class="lbl">CAPACITY</div><div class="val"><span id="k-cap">0</span><span class="unit">mAh</span></div></div>
         <div class="kpi"><div class="lbl">FULL CAP</div><div class="val"><span id="k-full">0</span><span class="unit">mAh</span></div></div>
       </div>
@@ -612,6 +613,28 @@
   <div class="card">
     <div class="card-title"><span>DEVICE INFO</span></div>
     <div id="info-host" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);line-height:1.7">--</div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <span>PROTOCOL DIAGNOSTICS · READ ONLY</span>
+      <span id="diag-pill" class="pill"><span class="dot"></span><span id="diag-pill-text">IDLE</span></span>
+    </div>
+    <div style="font-size:12px;color:var(--text-dim);line-height:1.7;margin-bottom:12px">
+      枚举当前网页有权访问的 GATT 服务与特征值，探测常见只读能力接口，并记录设备返回的原始 JSON 消息。诊断不会修改设备参数。
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn sm" id="btn-diag-start" disabled>开始诊断</button>
+      <button class="btn sm ghost" id="btn-diag-stop" disabled>停止采集</button>
+      <button class="btn sm ghost" id="btn-diag-export" disabled>导出 JSON</button>
+      <button class="btn sm ghost" id="btn-diag-clear">清空</button>
+      <span id="diag-status" style="font-size:11px;color:var(--text-fade)">请先连接设备</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
+      <input id="diag-path" type="text" placeholder="只读路径，例如 capabilities"
+             style="flex:1;min-width:190px;box-sizing:border-box;padding:7px 9px;border-radius:8px;border:1px solid var(--line-strong);background:var(--bg-2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px">
+      <button class="btn sm ghost" id="btn-diag-read" disabled>读取路径</button>
+    </div>
+    <pre id="diag-output" style="margin:12px 0 0;padding:10px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.22);color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto">尚无诊断数据</pre>
   </div>
   <div class="card">
     <div class="card-title">
@@ -727,8 +750,9 @@ const SVC_UUID = '12345678-1234-5678-1234-56789abcdef0';
 const RX_UUID  = '12345678-1234-5678-1234-56789abcdef1';
 const TX_UUID  = '12345678-1234-5678-1234-56789abcdef2';
 const OTA_UUID = '12345678-1234-5678-1234-56789abcdef3';
+const OPTIONAL_SERVICES = [SVC_UUID, 0x180A, 0x180F]; // ZHP2D + Device Information + Battery
 
-let device=null, server=null, rxChr=null, txChr=null, otaChr=null;
+let device=null, server=null, mainService=null, rxChr=null, txChr=null, otaChr=null;
 let reqId=1; const pending=new Map();
 let rxBuf='';
 let connected=false;
@@ -740,6 +764,7 @@ function setConnUI(on){
   $('connect-card').style.display = on ? 'none' : 'block';
   $('dash-content').style.display = on ? 'block' : 'none';
   var cc = $('config-card'); if (cc) cc.style.display = on ? 'block' : 'none';
+  diagRefreshButtons();
   if (!on){
     $('settings-host').innerHTML =
       '<div style="padding:30px 0;text-align:center;color:var(--text-fade);font-size:12px">未连接设备</div>';
@@ -757,22 +782,22 @@ async function connectBLE(){
     try{
       device = await navigator.bluetooth.requestDevice({
         filters:[{ namePrefix:'ZHP2D' }],
-        optionalServices:[SVC_UUID]
+        optionalServices:OPTIONAL_SERVICES
       });
     }catch(e){
       logW('按名筛选失败,改用全列表: '+(e.message||e));
       device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices:true, optionalServices:[SVC_UUID]
+        acceptAllDevices:true, optionalServices:OPTIONAL_SERVICES
       });
     }
     if (device) device.removeEventListener('gattserverdisconnected', onDisconnect);
     device.addEventListener('gattserverdisconnected', onDisconnect);
     logI('连接 GATT...');
     server = await device.gatt.connect();
-    const svc = await server.getPrimaryService(SVC_UUID);
-    rxChr = await svc.getCharacteristic(RX_UUID);
-    txChr = await svc.getCharacteristic(TX_UUID);
-    try { otaChr = await svc.getCharacteristic(OTA_UUID); } catch(e){ otaChr=null; logW('OTA 特征未找到'); }
+    mainService = await server.getPrimaryService(SVC_UUID);
+    rxChr = await mainService.getCharacteristic(RX_UUID);
+    txChr = await mainService.getCharacteristic(TX_UUID);
+    try { otaChr = await mainService.getCharacteristic(OTA_UUID); } catch(e){ otaChr=null; logW('OTA 特征未找到'); }
     await txChr.startNotifications();
     txChr.addEventListener('characteristicvaluechanged', onNotify);
     setConnUI(true);
@@ -785,13 +810,16 @@ async function connectBLE(){
   }
 }
 function onDisconnect(){
+  diagRecordEvent('connection', {state:'disconnected'});
   setConnUI(false);
   pending.forEach(p=>p.rej('disconnected'));
   pending.clear();
   otaPending.forEach(p=>p.rej('disconnected'));
   otaPending.clear();
   otaBusy=false; otaRefreshUI();
+  mainService=null; rxChr=null; txChr=null; otaChr=null;
   rxBuf=''; waitingFirstTele = false; logW('设备已断开');
+  if (diagState.session) diagSetStatus('设备已断开，仍可导出已采集数据', 'warn');
 }
 /* 配对完成时设备自动开始遥测推送(无需 sub tele).
    这里只等待第一个 tele 帧到来后再拉取 info/settings,
@@ -826,12 +854,14 @@ function onNotify(e){
     let msg; try{ msg = JSON.parse(line); }catch(_){
       /* 帧损坏诊断: 残缺 JSON 说明 BLE 通知分块在传输中丢失/交错 */
       logW('帧解析失败 len='+line.length+' head='+line.slice(0,40));
+      diagRecordEvent('parse-error', {length:line.length, raw:line});
       continue;
     }
-    handleMsg(msg);
+    handleMsg(msg, line);
   }
 }
-async function handleMsg(msg){
+async function handleMsg(msg, rawLine){
+  diagRecordMessage(msg, rawLine);
   if (msg.ev === 'tele'){ renderTele(msg.data); return; }
   if (msg.ev === 'ota'){ handleOtaMsg(msg); return; }
   if (msg.id != null && pending.has(msg.id)){
@@ -849,12 +879,14 @@ function gattSerialize(fn){
   return run;
 }
 
-function call(op, path, extra={}){
+function call(op, path, extra={}, timeoutMs=8000){
   return new Promise((res, rej)=>{
     if (!rxChr) return rej('not connected');
     const id = reqId++;
     pending.set(id, {res, rej});
-    const json = JSON.stringify({id, op, path, ...extra}) + '\n';
+    const payload = {id, op, path, ...extra};
+    const json = JSON.stringify(payload) + '\n';
+    diagRecordRequest(payload);
     const data = new TextEncoder().encode(json);
     gattSerialize(async ()=>{
       try{
@@ -867,8 +899,221 @@ function call(op, path, extra={}){
         }
       }catch(e){ if (pending.has(id)){ pending.delete(id); rej(e.message||e); } }
     });
-    setTimeout(()=>{ if (pending.has(id)){ pending.delete(id); rej('timeout'); }}, 8000);
+    setTimeout(()=>{ if (pending.has(id)){ pending.delete(id); rej('timeout'); }}, timeoutMs);
   });
+}
+
+/* ===================== Read-only protocol diagnostics ===================== */
+const DIAG_MAX_MESSAGES = 500;
+const DIAG_PROBE_PATHS = [
+  'info', 'capabilities', 'features', 'schema',
+  'config/schema', 'config/list', 'protocol', 'version', 'commands'
+];
+const DIAG_KNOWN_TELE_FIELDS = new Set([
+  'bus','bus.v','bus.i','bus.p','bat','bat.v','bat.i','bat.p',
+  'cap','full','cap_soc','soc','mode','dcrun','t','t.led','t.m1','t.m2','t.b1','t.b2',
+  'flag','flag.otmax','flag.otin','flag.otout','flag.ut','flag.dcrun','outpw'
+]);
+const diagState = { active:false, running:false, stopRequested:false, session:null };
+
+function diagNow(){ return new Date().toISOString(); }
+function diagSafeValue(value){
+  try { return JSON.parse(JSON.stringify(value)); }
+  catch (_) { return String(value); }
+}
+function diagFlatten(value, prefix='', out=[]){
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return out;
+  Object.keys(value).forEach(key=>{
+    const path = prefix ? prefix+'.'+key : key;
+    out.push(path);
+    diagFlatten(value[key], path, out);
+  });
+  return out;
+}
+function diagCreateSession(){
+  return {
+    format:'zhp2d-protocol-diagnostic-v1',
+    startedAt:diagNow(),
+    endedAt:null,
+    page:{url:location.href, userAgent:navigator.userAgent},
+    device:{name:device&&device.name||'', id:device&&device.id||''},
+    expectedProtocol:{service:SVC_UUID, rx:RX_UUID, tx:TX_UUID, ota:OTA_UUID},
+    gatt:[], probes:[], messages:[], events:[],
+    telemetry:{samples:0, fields:{}, latest:null, newFields:[]},
+    knownSettings:(typeof KEY_MAP!=='undefined' ? Array.from(KEY_MAP) : []),
+    notes:[
+      '所有自动探测均使用 get，只读且不会写入配置。',
+      'Web Bluetooth 只能访问设备选择时已授权的服务；未知的新服务 UUID 需要固件文档后加入 optionalServices。'
+    ]
+  };
+}
+function diagEnsureSession(){
+  if (!diagState.session) diagState.session = diagCreateSession();
+  return diagState.session;
+}
+function diagSetStatus(text, tone){
+  const el=$('diag-status'); if (el){
+    el.textContent=text;
+    el.style.color = tone==='error' ? 'var(--red)' : tone==='ok' ? 'var(--green)' : tone==='warn' ? 'var(--yellow)' : 'var(--text-fade)';
+  }
+}
+function diagSetActive(active){
+  diagState.active=active;
+  const pill=$('diag-pill'), text=$('diag-pill-text');
+  if (pill) pill.classList.toggle('on', active);
+  if (text) text.textContent = active ? 'CAPTURING' : (diagState.session ? 'READY' : 'IDLE');
+  diagRefreshButtons();
+}
+function diagRefreshButtons(){
+  const start=$('btn-diag-start'), stop=$('btn-diag-stop'), exp=$('btn-diag-export'), read=$('btn-diag-read');
+  if (start) start.disabled = !connected || diagState.running;
+  if (stop) stop.disabled = !diagState.active;
+  if (exp) exp.disabled = !diagState.session;
+  if (read) read.disabled = !connected || diagState.running;
+}
+function diagRecordEvent(type, data){
+  if (!diagState.active || !diagState.session) return;
+  diagState.session.events.push({at:diagNow(), type, data:diagSafeValue(data)});
+  if (diagState.session.events.length>200) diagState.session.events.shift();
+  diagRender();
+}
+function diagRecordRequest(payload){
+  if (!diagState.active || !diagState.session) return;
+  diagState.session.messages.push({at:diagNow(), direction:'tx', payload:diagSafeValue(payload)});
+  if (diagState.session.messages.length>DIAG_MAX_MESSAGES) diagState.session.messages.shift();
+  diagRender();
+}
+function diagRecordMessage(msg, rawLine){
+  if (!diagState.active || !diagState.session) return;
+  const session=diagState.session;
+  session.messages.push({at:diagNow(), direction:'rx', raw:rawLine||'', payload:diagSafeValue(msg)});
+  if (session.messages.length>DIAG_MAX_MESSAGES) session.messages.shift();
+  if (msg && msg.ev==='tele' && msg.data){
+    session.telemetry.samples++;
+    session.telemetry.latest=diagSafeValue(msg.data);
+    diagFlatten(msg.data).forEach(path=>{
+      if (!session.telemetry.fields[path]) session.telemetry.fields[path]={count:0, example:null};
+      session.telemetry.fields[path].count++;
+      session.telemetry.fields[path].example=diagSafeValue(path.split('.').reduce((v,k)=>v==null?undefined:v[k], msg.data));
+    });
+    session.telemetry.newFields=Object.keys(session.telemetry.fields).filter(path=>!DIAG_KNOWN_TELE_FIELDS.has(path));
+  }
+  diagRender();
+}
+function diagCharacteristicInfo(ch){
+  const names=['broadcast','read','writeWithoutResponse','write','notify','indicate','authenticatedSignedWrites','reliableWrite','writableAuxiliaries'];
+  return {uuid:ch.uuid, properties:names.filter(name=>ch.properties&&ch.properties[name])};
+}
+async function diagInspectGatt(){
+  const session=diagEnsureSession();
+  let services=[];
+  try { services=await server.getPrimaryServices(); }
+  catch (e) { if (mainService) services=[mainService]; else throw e; }
+  const result=[];
+  for (const svc of services){
+    const item={uuid:svc.uuid, primary:svc.isPrimary, characteristics:[]};
+    try{
+      const chars=await svc.getCharacteristics();
+      item.characteristics=chars.map(diagCharacteristicInfo);
+    }catch(e){ item.error=e.message||String(e); }
+    result.push(item);
+  }
+  session.gatt=result;
+  diagRender();
+  return result;
+}
+async function diagProbePath(path, source='auto'){
+  const session=diagEnsureSession();
+  const item={path, source, at:diagNow(), ok:false};
+  try{
+    item.data=diagSafeValue(await call('get', path, {}, 2500));
+    item.ok=true;
+  }catch(e){ item.error=e&&e.message||String(e); }
+  session.probes.push(item);
+  diagRender();
+  return item;
+}
+async function diagWaitForPair(){
+  const start=Date.now();
+  while (connected && waitingFirstTele && Date.now()-start<20000){
+    diagSetStatus('等待设备配对确认和首帧遥测…');
+    await new Promise(r=>setTimeout(r,200));
+  }
+  if (!connected) throw new Error('设备已断开');
+  if (waitingFirstTele) throw new Error('等待配对超时');
+}
+async function diagStart(){
+  if (!connected || diagState.running) return;
+  diagState.session=diagCreateSession();
+  diagState.stopRequested=false;
+  diagState.running=true;
+  diagSetActive(true);
+  diagSetStatus('准备诊断…');
+  diagRecordEvent('connection', {state:'connected', name:device&&device.name||''});
+  try{
+    await diagWaitForPair();
+    diagSetStatus('枚举 GATT 服务和特征值…');
+    await diagInspectGatt();
+    for (let i=0;i<DIAG_PROBE_PATHS.length;i++){
+      if (diagState.stopRequested || !connected) break;
+      diagSetStatus('只读探测 '+(i+1)+'/'+DIAG_PROBE_PATHS.length+': '+DIAG_PROBE_PATHS[i]);
+      await diagProbePath(DIAG_PROBE_PATHS[i]);
+    }
+    diagSetStatus(diagState.stopRequested ? '已停止自动探测，保留采集结果' : '自动探测完成，正在持续采集消息', 'ok');
+  }catch(e){
+    diagSetStatus('诊断失败: '+(e.message||e), 'error');
+    diagRecordEvent('error', {stage:'diagnostic', message:e.message||String(e)});
+  }finally{
+    diagState.running=false;
+    diagRefreshButtons();
+    diagRender();
+  }
+}
+function diagStop(){
+  diagState.stopRequested=true;
+  diagState.running=false;
+  if (diagState.session) diagState.session.endedAt=diagNow();
+  diagSetActive(false);
+  diagSetStatus('采集已停止，可导出诊断 JSON', 'ok');
+  diagRender();
+}
+function diagClear(){
+  diagState.active=false; diagState.running=false; diagState.stopRequested=true; diagState.session=null;
+  $('diag-output').textContent='尚无诊断数据';
+  diagSetStatus(connected?'已清空，可重新开始诊断':'请先连接设备');
+  diagSetActive(false);
+}
+function diagRender(){
+  const el=$('diag-output'), s=diagState.session; if (!el || !s) return;
+  const ok=s.probes.filter(x=>x.ok), failed=s.probes.filter(x=>!x.ok);
+  const chars=s.gatt.reduce((n,x)=>n+x.characteristics.length,0);
+  const fields=Object.keys(s.telemetry.fields);
+  const lines=[
+    '设备: '+(s.device.name||'(未命名)'),
+    'GATT: '+s.gatt.length+' 个服务 / '+chars+' 个特征值',
+    '探测: '+ok.length+' 成功 / '+failed.length+' 未支持',
+    '消息: '+s.messages.length+' 条（最多保留 '+DIAG_MAX_MESSAGES+' 条）',
+    '遥测: '+s.telemetry.samples+' 帧 / '+fields.length+' 个字段',
+    '新遥测字段: '+(s.telemetry.newFields.length?s.telemetry.newFields.join(', '):'暂未发现'),
+    '',
+    '支持的探测路径:',
+    ok.length ? ok.map(x=>'  ✓ '+x.path+' = '+JSON.stringify(x.data).slice(0,240)).join('\n') : '  --',
+    '',
+    'GATT 服务:',
+    s.gatt.length ? s.gatt.map(x=>'  '+x.uuid+'\n'+x.characteristics.map(c=>'    '+c.uuid+' ['+c.properties.join(', ')+']').join('\n')).join('\n') : '  --'
+  ];
+  el.textContent=lines.join('\n');
+  diagRefreshButtons();
+}
+function diagExport(){
+  const s=diagState.session; if (!s) return;
+  if (!s.endedAt) s.endedAt=diagNow();
+  const blob=new Blob([JSON.stringify(s,null,2)], {type:'application/json;charset=utf-8'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='ZHP2D_diagnostic_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+  a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  diagSetStatus('诊断 JSON 已导出', 'ok');
+  logI('诊断 JSON 已导出');
 }
 
 /* ===================== BLE OTA ===================== */
@@ -988,6 +1233,7 @@ function renderTele(d){
   $('k-batv').textContent = av.toFixed(3);
   $('k-bati').textContent = ai.toFixed(3);
   $('k-batp').textContent = ap.toFixed(2);
+  $('k-outpw').textContent = d.outpw == null ? '--' : d.outpw;
   $('k-cap').textContent  = d.cap||0;
   $('k-full').textContent = d.full||0;
 
@@ -1140,6 +1386,7 @@ const SETTING_TREE = [
   { key:'lcd_brightness', title:'屏幕亮度', ui:'slider', min:5, max:100, step:1, unit:'%' },
   { key:'sleep_wait_time', title:'睡眠延迟', ui:'spinbox', min:10, max:180, step:1, unit:'S' },
   { key:'lock_wait_time', title:'锁屏延迟', ui:'spinbox', min:10, max:180, step:1, unit:'S' },
+  { key:'unlock_countdown_time', title:'解锁倒计时', ui:'spinbox', min:4, max:10, step:1, unit:'S', configExtension:true, configExtensionOrder:1 },
   { title:'风扇设置', children:[
     { key:'fun_enable', title:'启用', ui:'switch' },
     { key:'fun_max', title:'最大风量', ui:'spinbox', min:10, max:100, step:1, unit:'%', hidden:{key:'fun_enable', eq:false} },
@@ -1147,6 +1394,7 @@ const SETTING_TREE = [
     { key:'fun_bat_temp_interval', title:'电池温区', ui:'range', min:35, max:50, unit:'度', hidden:{key:'fun_enable', eq:false} },
     { key:'fun_led_temp_interval', title:'LED温区', ui:'range', min:40, max:80, unit:'度', hidden:{key:'fun_enable', eq:false} },
     { key:'fun_stop_when_charger_full', title:'充满关闭风扇', ui:'switch', hidden:{key:'fun_enable', eq:false} },
+    { key:'fun_stop_wait_time', title:'关闭等待时间', ui:'spinbox', min:0, max:120, step:1, unit:'S', hidden:{key:'fun_enable', eq:false}, configExtension:true, configExtensionOrder:2 },
   ]},
   { title:'充电设置', children:[
     { key:'temp_control_input_power_default_power', title:'功率上限', ui:'spinbox', min:10, max:100, step:1, unit:'W' },
@@ -1166,13 +1414,15 @@ const SETTING_TREE = [
   ]},
   { title:'放电设置', children:[
     { key:'temp_control_output_power_default_power', title:'功率上限', ui:'spinbox', min:10, max:120, step:1, unit:'W' },
+    { key:'temp_control_output_power_ot_recover', title:'过温恢复功率', ui:'switch', configExtension:true, configExtensionOrder:6 },
     { key:'temp_control_output_power_bat_ot_temp', title:'电池过温', ui:'spinbox', min:20, max:55, step:1, unit:'度' },
     { key:'temp_control_output_power_bat_ot_power', title:'电池过温限功', ui:'spinbox', min:10, max:120, step:1, unit:'W' },
     { key:'temp_control_output_power_mos_ot_temp', title:'MOS过温', ui:'spinbox', min:40, max:80, step:1, unit:'度' },
     { key:'temp_control_output_power_mos_ot_power', title:'MOS过温限功', ui:'spinbox', min:10, max:120, step:1, unit:'W' },
     { key:'temp_control_output_power_bat_low_power', title:'电池5.4V限功', ui:'spinbox', min:10, max:65, step:1, unit:'W' },
     { key:'c_low_load_disconnct', title:'C口空载断开', ui:'switch' },
-    { key:'bq_term_min_cell_v', title:'单节截止电压', ui:'spinbox', min:2500, max:3300, step:1, unit:'mV' },
+    { key:'bq_discharge_cutoff_cell_v', title:'单节截止电压', ui:'spinbox', min:2500, max:3300, step:1, unit:'mV', configExtension:true, configExtensionOrder:3 },
+    { key:'bq_term_min_cell_v', title:'Term电压', ui:'spinbox', min:2500, max:3600, step:100, unit:'mV' },
   ]},
   { title:'甩2下唤醒', children:[
     { key:'wakeup_on_double_tap', title:'启用', ui:'switch' },
@@ -1181,11 +1431,13 @@ const SETTING_TREE = [
   { key:'efficiency_source', title:'效率来源', ui:'roller', options:['SW6306V','整机'] },
   { key:'cap_soc_source', title:'电量计算', ui:'roller', options:['mAh','mWh'] },
   { key:'interface_mode', title:'接口模式', ui:'roller', options:['XT30+C','A+C'] },
+  { key:'cc_assist', title:'CC辅助', ui:'switch', configExtension:true, configExtensionOrder:4 },
   { title:'震动设置', children:[
     { key:'haptic_enable', title:'启用', ui:'switch' },
     { key:'haptic_amplitude', title:'振幅', ui:'spinbox', min:20, max:100, step:1, unit:'%', hidden:{key:'haptic_enable', eq:false} },
   ]},
   { key:'chart_enable', title:'折线图', ui:'switch' },
+  { key:'starting_jpg_wait_time', title:'JPG等待时间', ui:'spinbox', min:0, max:10, step:1, unit:'S', configExtension:true, configExtensionOrder:5 },
   { key:'app_date', title:'固件日期', ui:'label' },
 ]},
 { title:'SW6306V', children:[
@@ -1550,6 +1802,24 @@ $('btn-clear-log').onclick = ()=>{ $('log').innerHTML=''; };
 $('btn-reload-set').onclick = buildSettings;
 $('btn-connect').onclick = ()=> connectBLE();
 
+/* Read-only diagnostics */
+$('btn-diag-start').onclick = diagStart;
+$('btn-diag-stop').onclick = diagStop;
+$('btn-diag-export').onclick = diagExport;
+$('btn-diag-clear').onclick = diagClear;
+$('btn-diag-read').onclick = async ()=>{
+  const path=$('diag-path').value.trim();
+  if (!path) { diagSetStatus('请输入只读路径', 'warn'); return; }
+  if (!diagState.session) diagState.session=diagCreateSession();
+  if (!diagState.active) diagSetActive(true);
+  diagState.running=true; diagRefreshButtons();
+  diagSetStatus('读取 '+path+'…');
+  const result=await diagProbePath(path, 'manual');
+  diagState.running=false; diagRefreshButtons();
+  diagSetStatus(result.ok ? '读取成功: '+path : '设备不支持 '+path+': '+result.error, result.ok?'ok':'warn');
+};
+$('diag-path').addEventListener('keydown', e=>{ if (e.key==='Enter' && !$('btn-diag-read').disabled) $('btn-diag-read').click(); });
+
 /* OTA */
 $('ota-file').onchange = (e)=>{
   otaState.file = e.target.files[0]||null;
@@ -1568,40 +1838,33 @@ $('btn-ota-fmt').onclick = async ()=>{
   }catch(e){ otaLog('格式化失败: '+(e.message||e), 'e'); }
 };
 
-/* KEY_MAP: ordered array of all exportable setting keys, with hidden dependency info.
-   Position in this array is the short ID used in compact export format. */
-var KEY_MAP = (function(){
-  var map=[], deps={};
-  (function walk(nodes){
-    nodes.forEach(function(n){
-      if (n.key && n.ui !== 'label'){
-        var idx = map.length;
-        map.push(n.key);
-        if (n.hidden) deps[idx] = {dep:n.hidden.key, eq:n.hidden.eq};
-      }
-      if (n.children) walk(n.children);
-    });
-  })(SETTING_TREE);
-  map._deps = deps;
-  return map;
-})();
-
 /* ===================== Config Export / Import ===================== */
 
 /* KEY_MAP: ordered array of all exportable setting keys, with hidden dependency info.
-   Position in this array is the short ID used in compact export format. */
+   Position in this array is the short ID used in compact export format.
+   Firmware-extension keys are appended after the original keys so old Base64 backups
+   and older mini-program versions keep the same positional mapping. */
 var KEY_MAP = (function(){
-  var map=[], deps={};
-  (function walk(nodes){
+  var map=[], deps={}, extensions=[];
+  function add(n){
+    var idx = map.length;
+    map.push(n.key);
+    if (n.hidden) deps[idx] = {dep:n.hidden.key, eq:n.hidden.eq};
+  }
+  (function walkBase(nodes){
     nodes.forEach(function(n){
-      if (n.key && n.ui !== 'label'){
-        var idx = map.length;
-        map.push(n.key);
-        if (n.hidden) deps[idx] = {dep:n.hidden.key, eq:n.hidden.eq};
-      }
-      if (n.children) walk(n.children);
+      if (n.key && n.ui !== 'label' && !n.configExtension) add(n);
+      if (n.children) walkBase(n.children);
     });
   })(SETTING_TREE);
+  (function appendExtensions(nodes){
+    nodes.forEach(function(n){
+      if (n.key && n.ui !== 'label' && n.configExtension) extensions.push(n);
+      if (n.children) appendExtensions(n.children);
+    });
+  })(SETTING_TREE);
+  extensions.sort(function(a,b){ return (a.configExtensionOrder || 0) - (b.configExtensionOrder || 0); });
+  extensions.forEach(add);
   map._deps = deps;
   return map;
 })();
