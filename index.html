@@ -843,6 +843,11 @@ async function initAfterPair(){
       `<div><span style="color:var(--text-fade)">${k}</span> · <span style="color:var(--cyan)">${v}</span></div>`).join('');
   }catch(e){ logE('info: '+e); }
   try{ await buildSettings(); }catch(e){ logE('settings: '+e); }
+  /* 设备无网络，配对完成后使用本机 Unix 时间自动对时。 */
+  try{
+    await call('set','config/sync_time', {value: Math.floor(Date.now()/1000)});
+    logI('自动对时完成: '+new Date().toLocaleString());
+  }catch(e){ logE('自动对时: '+e); }
 }
 function onNotify(e){
   const txt = new TextDecoder().decode(e.target.value);
@@ -1382,21 +1387,30 @@ window.addEventListener('resize', ()=>{
    单次响应很小,不会触发分块传输。
    hidden: {key, eq} — 依赖项的值等于 eq 时隐藏,语义同 scr2 的 hidden_condition。 */
 const SETTING_TREE = [
-{ title:'系统', children:[
+{ title:'显示', children:[
   { key:'lcd_brightness', title:'屏幕亮度', ui:'slider', min:5, max:100, step:1, unit:'%' },
+  { key:'chart_enable', title:'折线图', ui:'switch' },
+{ key:'starting_jpg_wait_time', title:'JPG等待时间', ui:'spinbox', min:0, max:10, step:1, unit:'S', configExtension:true, configExtensionOrder:5},
+]},
+{ title:'电源', children:[
   { key:'sleep_wait_time', title:'睡眠延迟', ui:'spinbox', min:10, max:180, step:1, unit:'S' },
   { key:'lock_wait_time', title:'锁屏延迟', ui:'spinbox', min:10, max:180, step:1, unit:'S' },
-  { key:'unlock_countdown_time', title:'解锁倒计时', ui:'spinbox', min:4, max:10, step:1, unit:'S', configExtension:true, configExtensionOrder:1 },
-  { title:'风扇设置', children:[
+  { key:'unlock_countdown_time', title:'解锁倒计时', ui:'spinbox', min:4, max:10, step:1, unit:'S', configExtension:true, configExtensionOrder:1},
+{ title:'甩2下唤醒', children:[
+    { key:'wakeup_on_double_tap', title:'启用', ui:'switch' },
+    { key:'go_to_led_screen_after_wakeup', title:'唤醒后进入LED界面', ui:'switch', hidden:{key:'wakeup_on_double_tap', eq:false} },
+  ]}
+]},
+{ title:'风扇设置', children:[
     { key:'fun_enable', title:'启用', ui:'switch' },
     { key:'fun_max', title:'最大风量', ui:'spinbox', min:10, max:100, step:1, unit:'%', hidden:{key:'fun_enable', eq:false} },
     { key:'fun_mos_temp_interval', title:'MOS温区', ui:'range', min:40, max:80, unit:'度', hidden:{key:'fun_enable', eq:false} },
     { key:'fun_bat_temp_interval', title:'电池温区', ui:'range', min:35, max:50, unit:'度', hidden:{key:'fun_enable', eq:false} },
     { key:'fun_led_temp_interval', title:'LED温区', ui:'range', min:40, max:80, unit:'度', hidden:{key:'fun_enable', eq:false} },
     { key:'fun_stop_when_charger_full', title:'充满关闭风扇', ui:'switch', hidden:{key:'fun_enable', eq:false} },
-    { key:'fun_stop_wait_time', title:'关闭等待时间', ui:'spinbox', min:0, max:120, step:1, unit:'S', hidden:{key:'fun_enable', eq:false}, configExtension:true, configExtensionOrder:2 },
+    { key:'fun_stop_wait_time', title:'关闭等待时间', ui:'spinbox', min:0, max:120, step:1, unit:'S', hidden:{key:'fun_enable', eq:false}, configExtension:true, configExtensionOrder:2},
   ]},
-  { title:'充电设置', children:[
+{ title:'充电设置', children:[
     { key:'temp_control_input_power_default_power', title:'功率上限', ui:'spinbox', min:10, max:100, step:1, unit:'W' },
     { key:'temp_control_input_power_default_current', title:'电流上限', ui:'spinbox', min:200, max:20000, step:200, unit:'mA' },
     { key:'temp_control_input_power_bat_ot_max_temp', title:'电池过热', ui:'spinbox', min:45, max:60, step:1, unit:'度' },
@@ -1412,34 +1426,28 @@ const SETTING_TREE = [
     { key:'sw6306_charger_voltage', title:'充电电压', ui:'spinbox', min:8300, max:9000, step:10, unit:'mV' },
     { key:'charger_voltage_add', title:'电压提升', ui:'roller', options:['1A/10mV','1.2A/10mV','1.4A/10mV','1.6A/10mV','1.8A/10mV','2A/10mV'] },
   ]},
-  { title:'放电设置', children:[
+{ title:'放电设置', children:[
     { key:'temp_control_output_power_default_power', title:'功率上限', ui:'spinbox', min:10, max:120, step:1, unit:'W' },
-    { key:'temp_control_output_power_ot_recover', title:'过温恢复功率', ui:'switch', configExtension:true, configExtensionOrder:6 },
     { key:'temp_control_output_power_bat_ot_temp', title:'电池过温', ui:'spinbox', min:20, max:55, step:1, unit:'度' },
     { key:'temp_control_output_power_bat_ot_power', title:'电池过温限功', ui:'spinbox', min:10, max:120, step:1, unit:'W' },
     { key:'temp_control_output_power_mos_ot_temp', title:'MOS过温', ui:'spinbox', min:40, max:80, step:1, unit:'度' },
     { key:'temp_control_output_power_mos_ot_power', title:'MOS过温限功', ui:'spinbox', min:10, max:120, step:1, unit:'W' },
     { key:'temp_control_output_power_bat_low_power', title:'电池5.4V限功', ui:'spinbox', min:10, max:65, step:1, unit:'W' },
+    { key:'temp_control_output_power_ot_recover', title:'过温恢复功率', ui:'switch', configExtension:true, configExtensionOrder:6},
     { key:'c_low_load_disconnct', title:'C口空载断开', ui:'switch' },
-    { key:'bq_discharge_cutoff_cell_v', title:'单节截止电压', ui:'spinbox', min:2500, max:3300, step:1, unit:'mV', configExtension:true, configExtensionOrder:3 },
-    { key:'bq_term_min_cell_v', title:'Term电压', ui:'spinbox', min:2500, max:3600, step:100, unit:'mV' },
+    { key:'bq_discharge_cutoff_cell_v', title:'单节截止电压', ui:'spinbox', min:2500, max:3300, step:1, unit:'mV', configExtension:true, configExtensionOrder:3},
   ]},
-  { title:'甩2下唤醒', children:[
-    { key:'wakeup_on_double_tap', title:'启用', ui:'switch' },
-    { key:'go_to_led_screen_after_wakeup', title:'唤醒后进入LED界面', ui:'switch', hidden:{key:'wakeup_on_double_tap', eq:false} },
-  ]},
+{ title:'系统', children:[
   { key:'efficiency_source', title:'效率来源', ui:'roller', options:['SW6306V','整机'] },
+  { key:'health_source', title:'健康度来源', ui:'roller', options:['多参算法','容量算法'], configExtension:true, configExtensionOrder:7},
   { key:'cap_soc_source', title:'电量计算', ui:'roller', options:['mAh','mWh'] },
-  { key:'health_source', title:'健康度来源', ui:'roller', options:['多参算法','容量算法'], configExtension:true, configExtensionOrder:7 },
   { key:'interface_mode', title:'接口模式', ui:'roller', options:['XT30+C','A+C'] },
-  { key:'cc_assist', title:'CC辅助', ui:'switch', configExtension:true, configExtensionOrder:4 },
-  { title:'震动设置', children:[
+  { key:'cc_assist', title:'CC辅助', ui:'switch', configExtension:true, configExtensionOrder:4},
+  { key:'app_date', title:'固件日期', ui:'label' },
+{ title:'震动设置', children:[
     { key:'haptic_enable', title:'启用', ui:'switch' },
     { key:'haptic_amplitude', title:'振幅', ui:'spinbox', min:20, max:100, step:1, unit:'%', hidden:{key:'haptic_enable', eq:false} },
   ]},
-  { key:'chart_enable', title:'折线图', ui:'switch' },
-  { key:'starting_jpg_wait_time', title:'JPG等待时间', ui:'spinbox', min:0, max:10, step:1, unit:'S', configExtension:true, configExtensionOrder:5 },
-  { key:'app_date', title:'固件日期', ui:'label' },
 ]},
 { title:'SW6306V', children:[
   { key:'sw6306_llc', title:'线补', ui:'roller', options:['60mV/A','0mV/A','100mV/A','80mV/A'] },
@@ -1547,10 +1555,13 @@ const SETTING_TREE = [
   { key:'bq_cycle_cnt', title:'循环次数', ui:'label' },
   { title:'配置参数', children:[
     { key:'bq_taper_cur', title:'变100%平均电流', ui:'spinbox', min:1000, max:8000, step:100, unit:'mA' },
+    { key:'bq_term_min_cell_v', title:'Term电压', ui:'spinbox', min:2500, max:3600, step:100, unit:'mV' },
     { key:'bq_version', title:'版本', ui:'label' },
   ]},
 ]},
 ];
+/* 协议使用但不显示 UI 的后台键。 */
+const NO_UI_KEYS = ['sync_time'];
 let currentTop=0;        /* 当前顶级分组索引 */
 let navPath=[];          /* 钻取路径: 从顶级分组 children 起每级分支的索引(scr2 子菜单导航) */
 let settingSchemaFlat=[]; /* 扁平化后的所有叶子,供 onSettingChange 查找 */
@@ -1845,25 +1856,27 @@ $('btn-ota-fmt').onclick = async ()=>{
    Position in this array is the short ID used in compact export format.
    Firmware-extension keys are appended after the original keys so old Base64 backups
    and older mini-program versions keep the same positional mapping. */
+var CONFIG_BASE_KEY_ORDER = 'lcd_brightness,sleep_wait_time,lock_wait_time,fun_enable,fun_max,fun_mos_temp_interval,fun_bat_temp_interval,fun_led_temp_interval,fun_stop_when_charger_full,temp_control_input_power_default_power,temp_control_input_power_default_current,temp_control_input_power_bat_ot_max_temp,temp_control_input_power_bat_ut_min_temp,temp_control_input_power_bat_ot_temp,temp_control_input_power_bat_ot_current,temp_control_input_power_mos_ot_temp,temp_control_input_power_mos_ot_current,input_priority_voltage_soc_interval,input_priority_voltage,sw6306_charger_voltage,charger_voltage_add,temp_control_output_power_default_power,temp_control_output_power_bat_ot_temp,temp_control_output_power_bat_ot_power,temp_control_output_power_mos_ot_temp,temp_control_output_power_mos_ot_power,temp_control_output_power_bat_low_power,c_low_load_disconnct,bq_term_min_cell_v,wakeup_on_double_tap,go_to_led_screen_after_wakeup,efficiency_source,cap_soc_source,interface_mode,haptic_enable,haptic_amplitude,chart_enable,sw6306_llc,sw6306_hold_5V,sw6306_hold_9V,sw6306_hold_10V,sw6306_hold_12V,sw6306_hold_15V,sw6306_hold_20V,sw6306_ll_mode,sw6306_fc_a,sw6306_fc_c_in,sw6306_fc_c_out,sw6306_dpdm_out_qc2,sw6306_dpdm_out_qc3,sw6306_dpdm_out_qc3p,sw6306_dpdm_out_fcp,sw6306_dpdm_out_afc,sw6306_dpdm_out_hvscp,sw6306_dpdm_out_lvscp,sw6306_dpdm_out_pe,sw6306_dpdm_out_sfcp,sw6306_dpdm_out_vooc1,sw6306_dpdm_out_vooc4,sw6306_dpdm_out_svooc,sw6306_dpdm_out_ufcs,sw6306_dpdm_in_ufcs,sw6306_dpdm_in_afc,sw6306_dpdm_in_scp,sw6306_dpdm_in_vooc,sw6306_dpdm_in_hvdcp,sw6306_ufcs_en_5v,sw6306_ufcs_en_10v,sw6306_ufcs_en_20v,sw6306_ufcs_mod_i,sw6306_ufcs_5v_ma,sw6306_ufcs_10v_ma,sw6306_ufcs_20v_ma,sw6306_typec_role,sw6306_pd_en,sw6306_pd_emarker,sw6306_pd_rsp_scp,sw6306_pd_rsp_vooc,sw6306_pd_rsp_ufcs,sw6306_pd_pps33,sw6306_pd_9v,sw6306_pd_12v,sw6306_pd_15v,sw6306_pd_20v,sw6306_pd_fix_en,sw6306_pd_fix_5v,sw6306_pd_fix_9v,sw6306_pd_fix_12v,sw6306_pd_fix_15v,sw6306_pd_fix_20v,sw6306_pd_pps_en,sw6306_pd_pps0_en,sw6306_pd_pps1_en,sw6306_pd_pps2_en,sw6306_pd_pps3_en,sw6306_pd_pps0_ma,sw6306_pd_pps1_ma,sw6306_pd_pps2_ma,sw6306_pd_pps3_ma,bq_design_cap,bq_design_mwh,bq_taper_cur'.split(',');
 var KEY_MAP = (function(){
-  var map=[], deps={}, extensions=[];
+  var map=[], deps={}, extensions=[], baseByKey={};
   function add(n){
     var idx = map.length;
     map.push(n.key);
     if (n.hidden) deps[idx] = {dep:n.hidden.key, eq:n.hidden.eq};
   }
-  (function walkBase(nodes){
+  (function collect(nodes){
     nodes.forEach(function(n){
-      if (n.key && n.ui !== 'label' && !n.configExtension) add(n);
-      if (n.children) walkBase(n.children);
+      if (n.key && n.ui !== 'label'){
+        if (n.configExtension) extensions.push(n);
+        else baseByKey[n.key] = n;
+      }
+      if (n.children) collect(n.children);
     });
   })(SETTING_TREE);
-  (function appendExtensions(nodes){
-    nodes.forEach(function(n){
-      if (n.key && n.ui !== 'label' && n.configExtension) extensions.push(n);
-      if (n.children) appendExtensions(n.children);
-    });
-  })(SETTING_TREE);
+  CONFIG_BASE_KEY_ORDER.forEach(function(key){
+    if (baseByKey[key]){ add(baseByKey[key]); delete baseByKey[key]; }
+  });
+  Object.keys(baseByKey).forEach(function(key){ add(baseByKey[key]); });
   extensions.sort(function(a,b){ return (a.configExtensionOrder || 0) - (b.configExtensionOrder || 0); });
   extensions.forEach(add);
   map._deps = deps;
