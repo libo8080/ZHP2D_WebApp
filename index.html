@@ -789,6 +789,11 @@ async function initAfterPair(){
       `<div><span style="color:var(--text-fade)">${k}</span> · <span style="color:var(--cyan)">${v}</span></div>`).join('');
   }catch(e){ logE('info: '+e); }
   try{ await buildSettings(); }catch(e){ logE('settings: '+e); }
+  /* 配对完成且数据加载成功后后台自动对时(设备无网络, 时间以本机为准) */
+  try{
+    await call('set','config/sync_time', {value: Math.floor(Date.now()/1000)});
+    logI('自动对时完成: '+new Date().toLocaleString());
+  }catch(e){ logE('自动对时: '+e); }
 }
 function onNotify(e){
   const txt = new TextDecoder().decode(e.target.value);
@@ -1166,12 +1171,11 @@ const SETTING_TREE = [
   { key:'cap_soc_source', title:'电量计算', ui:'roller', options:['mAh','mWh'] },
   { key:'interface_mode', title:'接口模式', ui:'roller', options:['XT30+C','A+C'] },
   { key:'cc_assist', title:'CC辅助', ui:'switch' },
+  { key:'app_date', title:'固件日期', ui:'label' },
 { title:'震动设置', children:[
     { key:'haptic_enable', title:'启用', ui:'switch' },
     { key:'haptic_amplitude', title:'振幅', ui:'spinbox', min:20, max:100, step:1, unit:'%', hidden:{key:'haptic_enable', eq:false} },
   ]},
-  { key:'sync_time', title:'设备对时', ui:'spinbox', min:0, max:2147483647, step:1, unit:'s' },
-  { key:'app_date', title:'固件日期', ui:'label' },
 ]},
 { title:'SW6306V', children:[
   { key:'sw6306_llc', title:'线补', ui:'roller', options:['60mV/A','0mV/A','100mV/A','80mV/A'] },
@@ -1284,6 +1288,9 @@ const SETTING_TREE = [
   ]},
 ]},
 ];
+/* 协议使用但不显示 UI 的后台键(自动对时等): 不进 SETTING_TREE,
+ * 验证脚本按 SETTING_TREE ∪ NO_UI_KEYS 与固件键比对 */
+const NO_UI_KEYS = ['sync_time'];
 let currentTop=0;        /* 当前顶级分组索引 */
 let navPath=[];          /* 钻取路径: 从顶级分组 children 起每级分支的索引(scr2 子菜单导航) */
 let settingSchemaFlat=[]; /* 扁平化后的所有叶子,供 onSettingChange 查找 */

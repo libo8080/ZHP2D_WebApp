@@ -12,6 +12,7 @@
 - min/max/step/unit 与固件完全一致；固件改范围必须同步
 - `hidden:{key,eq}` 语义同 scr2 `hidden_condition`；固件菜单分组重组后本树同步重组
 - 动作类菜单项(库伦重置/重启等)不进本树；只读状态用 label
+- 后台自动键(如 sync_time 自动对时)不进树: 声明进 `NO_UI_KEYS`, 由自动流程直接 set config
 - 改完运行 WEBAPP_SYNC_SPEC.md 第 7 节的键名对比脚本，两侧差值必须为空
 
 ## 本仓库约束
