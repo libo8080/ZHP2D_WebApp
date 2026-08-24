@@ -134,12 +134,12 @@
     border-top:1px solid var(--line);
   }
   .tabs-inner{
-    display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:560px;margin:0 auto;
+    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;max-width:560px;margin:0 auto;
   }
   .tab{
     border:none;background:transparent;color:var(--text-dim);
     padding:8px 4px;border-radius:12px;display:flex;flex-direction:column;
-    align-items:center;gap:3px;font-size:11px;letter-spacing:.12em;
+    align-items:center;gap:3px;min-width:0;font-size:11px;letter-spacing:.08em;
   }
   .tab svg{width:20px;height:20px}
   .tab.active{color:var(--cyan);background:rgba(34,230,255,.08)}
