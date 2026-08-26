@@ -728,7 +728,7 @@
     <div id="data-files" class="data-files"></div>
     <div id="data-boots"></div>
     <div class="chart-head">
-      <span class="chart-label">折线图 · 双指缩放 · 点按查看数值</span>
+      <span class="chart-label">折线图 · 双指缩放 · 点按查看数值与累计用时</span>
       <button class="chip sm" id="btn-chart-full">⛶ 全屏</button>
     </div>
     <div id="data-chart-container"></div>
@@ -745,7 +745,7 @@
     </div>
     <div id="data-readings"></div>
     <div id="data-stats"></div>
-    <div style="margin-top:8px;font-size:10px;color:var(--text-fade)">双指缩放、拖拽平移、点按查看数值;深睡唤醒计入开机次数。</div>
+    <div style="margin-top:8px;font-size:10px;color:var(--text-fade)">双指缩放、拖拽平移、点按查看数值和本次开机累计用时；深睡唤醒计入开机次数。</div>
   </div>
 </section>
 
@@ -2372,6 +2372,18 @@ drawChart();
     return (d.getMonth()+1)+'-'+pad2(d.getDate())+' '+pad2(d.getHours())+':'+pad2(d.getMinutes())+':'+pad2(d.getSeconds());
   };
   const fmtDur = s => { const h = Math.floor(s/3600), m = Math.floor(s%3600/60); return (h ? h+'h' : '') + m + 'm'; };
+  const fmtElapsed = s => {
+    const total = Math.max(0, Math.round(Number(s) || 0));
+    const days = Math.floor(total / 86400);
+    const hours = Math.floor(total % 86400 / 3600);
+    const minutes = Math.floor(total % 3600 / 60);
+    const seconds = total % 60;
+    return (days ? days + '天 ' : '') + pad2(hours) + ':' + pad2(minutes) + ':' + pad2(seconds);
+  };
+  const elapsedAt = i => {
+    if (i < sessionRange.i0 || i > sessionRange.i1) return 0;
+    return Math.max(0, D.mono[i] - D.mono[sessionRange.i0]);
+  };
 
   /* ---------------- 文件列表 ---------------- */
   async function refreshList(){
@@ -2559,6 +2571,22 @@ drawChart();
     }
   }
 
+  async function readLogPage(name, offset, count){
+    let lastError = null;
+    for (let attempt = 1; attempt <= 3; attempt++){
+      try {
+        return await call('get', 'logs/read', { name, offset, count }, 12000);
+      } catch (error) {
+        lastError = error;
+        if (!/timeout|超时|busy|繁忙|10003|10008|write/i.test(String(error)) || attempt >= 3) throw error;
+        rxBuf = '';
+        $('data-status').textContent = `第 ${offset + 1} 条读取超时，正在重试 ${attempt + 1}/3...`;
+        await new Promise(resolve => setTimeout(resolve, 350 * attempt));
+      }
+    }
+    throw lastError;
+  }
+
   async function loadSelected(){
     const selFiles = files.filter(f => sel.has(f.name)).sort((a,b) => (a.start_mono||0) - (b.start_mono||0));
     const names = selFiles.map(f => f.name);
@@ -2579,9 +2607,11 @@ drawChart();
           continue;
         }
         let off = 0, guard = 0;
+        const pageSize = 12;
+        const fileRecords = selFiles[fi].records || 0;
         while (true){
           $('data-status').textContent = '加载中... 已 ' + D.t.length + ' 条';
-          const r = await call('get', 'logs/read', { name, offset: off, count: 200 });
+          const r = await readLogPage(name, off, pageSize);
           const rows = r.records || [];
           if (!rows.length) break;
           for (const row of rows){
@@ -2590,9 +2620,11 @@ drawChart();
             const epoch_off = epoch !== 0 ? epoch - mono : 0;
             pushRecord(mono, epoch_off, row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16]);
           }
-          off += 200;
+          off += rows.length;
           if (totalRecords > 0) setProgress(D.t.length / totalRecords * 100);
-          if (++guard > 40) break;
+          if (fileRecords > 0 && off >= fileRecords) break;
+          if (++guard > 50000) throw new Error('日志分页数量异常');
+          await new Promise(resolve => setTimeout(resolve, 35));
         }
       }
       finalizeData();
@@ -2788,7 +2820,9 @@ drawChart();
           if (!params || !params.length) return '';
           const rx = params[0].value[0];
           const xSec = sessionTimeMode === 'absolute' ? rx / 1000 : rx;
+          const pointIndex = i0 + params[0].dataIndex;
           let html = '<b style="color:#22e6ff">' + fmtFull(xSec) + '</b>';
+          html += '<br/><span style="color:#a8b9d8">累计用时</span>: <b style="color:#3df59a">' + fmtElapsed(elapsedAt(pointIndex)) + '</b>';
           for (const p of params) {
             const v = p.value[1];
             const unit = (p.data && p.data.unit) || '';
@@ -2828,12 +2862,28 @@ drawChart();
       return;
     }
 
-    /* 点击查看数值 */
-    chart.on('click', params => {
-      if (params && params.dataIndex != null) {
-        hover = i0 + params.dataIndex;
-        renderReadings();
+    /* 点击图中任意位置，按当前缩放范围换算 X 坐标并吸附到最近记录。 */
+    chart.getZr().on('click', event => {
+      const pixel = [event.offsetX, event.offsetY];
+      if (!chart || !chart.containPixel({ gridIndex: 0 }, pixel)) return;
+      let rawX = chart.convertFromPixel({ xAxisIndex: 0 }, pixel);
+      if (Array.isArray(rawX)) rawX = rawX[0];
+      rawX = Number(rawX);
+      if (!Number.isFinite(rawX)) return;
+      const target = sessionTimeMode === 'absolute' ? rawX / 1000 : rawX;
+      let lo = i0, hi = i1;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (sessionT[mid] < target) lo = mid + 1;
+        else hi = mid;
       }
+      let ci = lo;
+      if (ci > i0 && Math.abs(sessionT[ci - 1] - target) <= Math.abs(sessionT[ci] - target)) ci--;
+      stopPlay();
+      cursor = ci;
+      hover = ci;
+      chart.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: ci - i0 });
+      renderReadings();
     });
 
     renderStats();
@@ -2886,12 +2936,16 @@ drawChart();
     const ci = playing ? Math.round(cursor) : (hover >= 0 ? hover : cursor);
     if (ci < sessionRange.i0 || ci > sessionRange.i1) { host.innerHTML = ''; return; }
     let html = '<b style="color:var(--cyan)">' + fmtFull(sessionT[ci]) + '</b>';
+    html += ' · <b style="color:var(--green)">累计用时 ' + fmtElapsed(elapsedAt(ci)) + '</b>';
     html += ' · 开机#' + (currentBoot + 1);
     if (D.epoch_off[ci] === 0) html += ' <span style="color:var(--text-fade)">(未对时)</span>';
     for (const c of CATS) {
       const cc = catCfg(c);
       if (cc.axis === 'H') continue;
-      const parts = c.series.map(s => s.l + ' ' + getVal(s.k, ci).toFixed(c.decimals));
+      const parts = c.series.map(s => {
+        const value = getVal(s.k, ci);
+        return s.l + ' ' + (value == null ? '--' : value.toFixed(c.decimals));
+      });
       html += ' &nbsp;|&nbsp; <span style="color:' + cc.color + '">' + c.label + ':</span> ' + parts.join(' / ') + ' ' + c.unit;
     }
     host.innerHTML = html;
