@@ -742,6 +742,7 @@
       </select>
       <span id="data-cursor" style="font-size:11px;color:var(--text-fade)"></span>
       <button class="btn sm ghost" id="btn-data-export">导出CSV</button>
+      <button class="btn sm ghost" id="btn-data-export-jpg">导出JPG</button>
     </div>
     <div id="data-readings"></div>
     <div id="data-stats"></div>
@@ -2992,6 +2993,79 @@ drawChart();
     logI('CSV 已导出: ' + rows.length + ' 条');
   }
 
+  function exportChartJPG() {
+    if (!chart || D.mono.length < 2 || !boots.length) {
+      logW('请先加载日志并生成曲线');
+      $('data-status').textContent = '请先加载日志并生成曲线';
+      return;
+    }
+    const selectedCats = CATS.filter(c => catCfg(c).axis !== 'H');
+    if (!selectedCats.length) {
+      logW('请至少选择一个曲线分组');
+      $('data-status').textContent = '请至少选择一个曲线分组';
+      return;
+    }
+
+    const current = chart.getOption();
+    const oldGrid = current.grid && current.grid[0] ? current.grid[0] : {};
+    const oldBackground = current.backgroundColor || 'transparent';
+    const dataZoom = current.dataZoom && current.dataZoom[0] ? current.dataZoom[0] : {};
+    const startPercent = Number.isFinite(Number(dataZoom.start)) ? Math.round(Number(dataZoom.start)) : 0;
+    const endPercent = Number.isFinite(Number(dataZoom.end)) ? Math.round(Number(dataZoom.end)) : 100;
+    const light = document.documentElement.dataset.theme === 'light';
+    const background = light ? '#f7f9fc' : '#05080f';
+    const titleColor = light ? '#172033' : '#e6f0ff';
+    const subColor = light ? '#526078' : '#8aa0c8';
+    const selectedNames = selectedCats.map(c => c.label + '(' + c.unit + ')').join(' · ');
+    const legendData = [];
+    selectedCats.forEach(c => c.series.forEach(s => legendData.push(s.l)));
+    let imageUrl = '';
+
+    try {
+      chart.setOption({
+        backgroundColor: background,
+        title: {
+          show: true,
+          left: 14,
+          top: 10,
+          text: 'ZHP2D DATA · 开机#' + (currentBoot + 1),
+          subtext: '选中数据: ' + selectedNames + ' · 当前范围 ' + startPercent + '%–' + endPercent + '%',
+          textStyle: { color: titleColor, fontSize: 16, fontWeight: 700 },
+          subtextStyle: { color: subColor, fontSize: 11, lineHeight: 18 },
+        },
+        legend: {
+          show: true,
+          type: 'scroll',
+          top: 60,
+          left: 14,
+          right: 14,
+          data: legendData,
+          textStyle: { color: subColor, fontSize: 10 },
+        },
+        grid: Object.assign({}, oldGrid, { top: 98 }),
+      }, false, true);
+      imageUrl = chart.getDataURL({ type: 'jpeg', pixelRatio: 2, backgroundColor: background });
+    } catch (error) {
+      logE('JPG 导出失败: ' + (error && error.message ? error.message : error));
+      $('data-status').textContent = 'JPG 导出失败';
+      return;
+    } finally {
+      chart.setOption({
+        backgroundColor: oldBackground,
+        title: { show: false },
+        legend: { show: false },
+        grid: oldGrid,
+      }, false, true);
+    }
+
+    const a = document.createElement('a');
+    a.href = imageUrl;
+    a.download = 'ZHP2D_DATA_boot' + (currentBoot + 1) + '_' + Date.now() + '.jpg';
+    a.click();
+    $('data-status').textContent = 'JPG 已导出 · ' + selectedNames;
+    logI('JPG 已导出: ' + selectedNames + ' · 范围 ' + startPercent + '%–' + endPercent + '%');
+  }
+
   /* ---------------- 绑定 ---------------- */
   $('btn-data-refresh').onclick = refreshList;
   $('btn-data-all').onclick = () => {
@@ -3011,6 +3085,7 @@ drawChart();
     }
   };
   $('btn-data-export').onclick = exportCSV;
+  $('btn-data-export-jpg').onclick = exportChartJPG;
   $('data-speed').onchange = e => { speed = parseFloat(e.target.value); };
   $('btn-chart-full').onclick = () => {
     const c = $('data-chart-container');
