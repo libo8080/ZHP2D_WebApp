@@ -3005,6 +3005,11 @@ drawChart();
       $('data-status').textContent = '请至少选择一个曲线分组';
       return;
     }
+    stopPlay();
+    const selectedIndex = hover >= sessionRange.i0 && hover <= sessionRange.i1
+      ? hover
+      : Math.max(sessionRange.i0, Math.min(sessionRange.i1, Math.round(cursor)));
+    const selectedElapsed = fmtElapsed(elapsedAt(selectedIndex));
 
     const current = chart.getOption();
     const oldGrid = current.grid && current.grid[0] ? current.grid[0] : {};
@@ -3016,7 +3021,7 @@ drawChart();
     const background = light ? '#f7f9fc' : '#05080f';
     const titleColor = light ? '#172033' : '#e6f0ff';
     const subColor = light ? '#526078' : '#8aa0c8';
-    const selectedNames = selectedCats.map(c => c.label + '(' + c.unit + ')').join(' · ');
+    const selectedNames = selectedCats.map(c => c.label).join(' / ');
     const legendData = [];
     selectedCats.forEach(c => c.series.forEach(s => legendData.push(s.l)));
     let imageUrl = '';
@@ -3029,20 +3034,20 @@ drawChart();
           left: 14,
           top: 10,
           text: 'ZHP2D DATA · 开机#' + (currentBoot + 1),
-          subtext: '选中数据: ' + selectedNames + ' · 当前范围 ' + startPercent + '%–' + endPercent + '%',
+          subtext: '选中数据: ' + selectedNames + '\n选中位置累计用时: ' + selectedElapsed + ' · 当前范围 ' + startPercent + '%–' + endPercent + '%',
           textStyle: { color: titleColor, fontSize: 16, fontWeight: 700 },
           subtextStyle: { color: subColor, fontSize: 11, lineHeight: 18 },
         },
         legend: {
           show: true,
           type: 'scroll',
-          top: 60,
+          top: 82,
           left: 14,
           right: 14,
           data: legendData,
           textStyle: { color: subColor, fontSize: 10 },
         },
-        grid: Object.assign({}, oldGrid, { top: 98 }),
+        grid: Object.assign({}, oldGrid, { top: 120 }),
       }, false, true);
       imageUrl = chart.getDataURL({ type: 'jpeg', pixelRatio: 2, backgroundColor: background });
     } catch (error) {
@@ -3062,8 +3067,8 @@ drawChart();
     a.href = imageUrl;
     a.download = 'ZHP2D_DATA_boot' + (currentBoot + 1) + '_' + Date.now() + '.jpg';
     a.click();
-    $('data-status').textContent = 'JPG 已导出 · ' + selectedNames;
-    logI('JPG 已导出: ' + selectedNames + ' · 范围 ' + startPercent + '%–' + endPercent + '%');
+    $('data-status').textContent = 'JPG 已导出 · 累计用时 ' + selectedElapsed;
+    logI('JPG 已导出: ' + selectedNames + ' · 累计用时 ' + selectedElapsed + ' · 范围 ' + startPercent + '%–' + endPercent + '%');
   }
 
   /* ---------------- 绑定 ---------------- */
