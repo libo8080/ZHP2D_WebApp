@@ -614,7 +614,6 @@ nav.tabs{background:rgba(255,255,255,.94);border:none;box-shadow:0 -8px 30px rgb
     </div>
     <div class="actions">
       <span id="ble-pill" class="pill"><span class="dot"></span><span id="ble-text">OFFLINE</span></span>
-      <button class="ico-btn" id="btn-theme" title="更多">•••</button>
     </div>
   </div>
 </header>
@@ -2607,12 +2606,6 @@ $('cfg-file-input').onchange = function(e){
   };
   reader.readAsText(file);
   e.target.value = '';
-};
-
-// theme toggle
-$('btn-theme').onclick = ()=>{
-  const details = document.querySelector('.dashboard-details');
-  if (details && $('view-dash').classList.contains('active')) details.open = !details.open;
 };
 
 /* logo 长按 -> 密码管理弹窗(PW.设置 / PWC.清除, 设备端校验) */
