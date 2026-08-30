@@ -584,7 +584,8 @@ nav.tabs{background:rgba(255,255,255,.94);border:none;box-shadow:0 -8px 30px rgb
 .eco-voltage-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.eco-voltage-grid label{position:relative;display:grid;place-items:center;height:38px;border-radius:12px;background:#f4f8f6;color:#52605b;font-size:11px;font-weight:700;cursor:pointer}.eco-voltage-grid input{position:absolute;opacity:0;pointer-events:none}.eco-voltage-grid label:has(input:checked){background:#daf3e8;color:#1b9160}.eco-voltage-grid label:has(input:disabled){opacity:.55;cursor:not-allowed}
 .eco-profile-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.eco-profile-field{display:flex;flex-direction:column;gap:6px;color:var(--text-dim);font-size:10px}.eco-profile-field select,.eco-profile-field input{width:100%;height:40px;padding:0 10px;border:1px solid var(--line-strong);border-radius:12px;background:var(--bg-2);color:var(--text);font:inherit;font-size:13px}.eco-profile-actions{display:flex;gap:9px;margin-top:16px}.eco-profile-actions .btn{flex:1}
 .summary-card{display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border:0;border-radius:28px;padding:22px 8px;box-shadow:0 5px 20px rgba(25,38,33,.055);margin-bottom:16px}
-.summary-item{text-align:center;padding:0 8px}.summary-item+ .summary-item{border-left:1px solid #e2e8e5}.summary-value{font-size:28px;line-height:1.1;font-weight:450;letter-spacing:-.04em}.summary-value small{font-size:14px;color:#717a77;margin-left:2px}.summary-label{color:#717a77;margin-top:7px;font-size:13px}.summary-value.efficiency{color:#239b67;font-weight:600}
+.summary-item{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 8px}.summary-item+ .summary-item{border-left:1px solid #e2e8e5}.summary-value{font-size:28px;line-height:1.1;font-weight:450;letter-spacing:-.04em}.summary-value small{font-size:14px;color:#717a77;margin-left:2px}.summary-label{color:#717a77;margin-top:7px;font-size:13px}.summary-value.efficiency{color:#239b67;font-weight:600}
+.summary-cell-voltages{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:7px;color:#76827d;font-size:9px;font-variant-numeric:tabular-nums}.summary-cell-voltages b{color:#46514c;font-size:11px;font-weight:650}.summary-cell-delta{display:inline-flex;align-items:center;justify-content:center;margin-top:5px;padding:3px 7px;border-radius:999px;background:#eef8f4;color:#25966e;font-size:9px;font-weight:650;font-variant-numeric:tabular-nums}
 .summary-temp-stack{display:flex;flex-direction:column;align-items:center;gap:6px}.summary-temp-row{display:flex;align-items:baseline;justify-content:center;gap:4px;line-height:1}.summary-temp-name{min-width:29px;color:#7a8580;font-size:9px;text-align:right}.summary-temp-value{min-width:47px;color:#202523;font-size:19px;font-weight:500;text-align:left;font-variant-numeric:tabular-nums}.summary-temp-value small{font-size:10px;color:#717a77;margin-left:2px}
 .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}.quick-link{position:relative;overflow:hidden;border:0;background:#fff;border-radius:24px;min-height:94px;padding:18px;display:flex;align-items:center;justify-content:space-between;color:#202523;font-size:17px;font-weight:520;text-align:left;box-shadow:0 5px 20px rgba(25,38,33,.055);cursor:pointer}.quick-link:active{transform:scale(.98)}
 .quick-icon{width:43px;height:43px;border-radius:15px;display:grid;place-items:center;background:#edf8f5;color:#42b5a4;font-size:21px;font-weight:700}.quick-icon.amber,.quick-icon.mint,.quick-icon.blue,.quick-icon.rose,.quick-icon.green,.quick-icon.gray{background:#edf8f5;color:#42b5a4}
@@ -616,6 +617,7 @@ html[data-theme="dark"] .fan-model-control{background:rgba(28,36,33,.92);border-
 html[data-theme="dark"] nav.tabs{background:rgba(18,23,21,.95);box-shadow:0 -8px 30px rgba(0,0,0,.26)}
 html[data-theme="dark"] .tab svg,html[data-theme="dark"] .quick-icon{background:#202927;color:#61cbbb}html[data-theme="dark"] .tab.active svg{background:#19312c;color:#56c8b6}
 html[data-theme="dark"] .summary-item+.summary-item{border-color:#2b3532}html[data-theme="dark"] .summary-value small,html[data-theme="dark"] .summary-label,html[data-theme="dark"] .summary-temp-name,html[data-theme="dark"] .summary-temp-value small,html[data-theme="dark"] .home-total-power-caption,html[data-theme="dark"] .home-total-power-value small{color:#9ba7a2}html[data-theme="dark"] .summary-temp-value{color:#eef4f1}
+html[data-theme="dark"] .summary-cell-voltages{color:#96a39d}html[data-theme="dark"] .summary-cell-voltages b{color:#e7efeb}html[data-theme="dark"] .summary-cell-delta{background:#20382f;color:#63d2a6}
 html[data-theme="dark"] .operation-electrical{color:#eef4f1}html[data-theme="dark"] .operation-electrical-item+.operation-electrical-item{border-color:#303b37}html[data-theme="dark"] .operation-electrical-value small,html[data-theme="dark"] .operation-electrical-label{color:#9ba7a2}
 html[data-theme="dark"] .profile-config{background:#202927;color:#65ceb9;border-color:#34413c}html[data-theme="dark"] .eco-voltage-grid label{background:#202825;color:#aeb9b4}html[data-theme="dark"] .eco-voltage-grid label:has(input:checked){background:#173c31;color:#6bd3a8}
 html[data-theme="dark"] .charger-head{background:linear-gradient(145deg,#1d2522,#121715);border-color:#303b37;box-shadow:0 13px 25px rgba(0,0,0,.28)}html[data-theme="dark"] .charger-power small{color:#9ba7a2}html[data-theme="dark"] .charge-cable .cable-shadow{stroke:rgba(0,0,0,.42)}
@@ -773,7 +775,9 @@ html[data-theme="dark"] #connect-card .connect-hero{background:radial-gradient(c
       <div class="summary-card">
         <div class="summary-item">
           <div class="summary-value"><span id="k-batv">0.000</span><small>V</small></div>
-          <div class="summary-label">电池总电压</div>
+          <div class="summary-cell-voltages"><span>CELL1 <b id="home-cell1-v">--</b>V</span><span>CELL2 <b id="home-cell2-v">--</b>V</span></div>
+          <div class="summary-cell-delta">压差&nbsp;<span id="home-cell-delta">--</span>&nbsp;mV</div>
+          <div class="summary-label">电池电压</div>
         </div>
         <div class="summary-item">
           <div class="summary-value efficiency"><span id="home-efficiency">--</span><small>%</small></div>
@@ -1356,6 +1360,7 @@ function setConnUI(on){
   diagRefreshButtons();
   if (!on){
     if(typeof resetChargeEta==='function')resetChargeEta('未连接设备');
+    if(typeof stopCellVoltagePolling==='function')stopCellVoltagePolling();
     $('settings-host').innerHTML =
       '<div style="padding:30px 0;text-align:center;color:var(--text-fade);font-size:12px">未连接设备</div>';
     $('grp-tabs').innerHTML = '';
@@ -1463,6 +1468,7 @@ async function initAfterPair(){
     await call('set','config/sync_time', {value: Math.floor(Date.now()/1000)});
     logI('自动对时完成: '+new Date().toLocaleString());
   }catch(e){ logE('自动对时: '+e); }
+  startCellVoltagePolling();
 }
 function onNotify(e){
   const txt = new TextDecoder().decode(e.target.value);
@@ -1836,6 +1842,47 @@ const HIST_MAX = 120;
 const hist = { t:[], bus:{v:[],i:[],p:[]}, bat:{v:[],i:[],p:[]} };
 let chartSource='bus';
 const chartSeries={v:true,i:true,p:true};
+
+let cellVoltageTimer=null,cellVoltageReadBusy=false;
+function normalizeCellVoltage(value){
+  let source=value;
+  if(source&&typeof source==='object'){
+    const keys=['value','voltage','v','mv','raw'];
+    for(const key of keys){if(source[key]!==undefined&&source[key]!==null){source=source[key];break;}}
+  }
+  const text=String(source==null?'':source).trim();
+  const match=text.match(/-?\d+(?:\.\d+)?/);
+  const raw=match?Number(match[0]):NaN;
+  if(!Number.isFinite(raw)||raw<=0)return null;
+  return /\bmv\b/i.test(text)||raw>100?raw/1000:raw;
+}
+function paintCellVoltages(cell1,cell2){
+  const c1=$('home-cell1-v'),c2=$('home-cell2-v'),delta=$('home-cell-delta');
+  if(c1)c1.textContent=cell1==null?'--':cell1.toFixed(3);
+  if(c2)c2.textContent=cell2==null?'--':cell2.toFixed(3);
+  if(delta)delta.textContent=cell1==null||cell2==null?'--':Math.round(Math.abs(cell1-cell2)*1000);
+}
+async function refreshCellVoltages(){
+  if(!connected||cellVoltageReadBusy)return;
+  cellVoltageReadBusy=true;
+  try{
+    const r1=await call('get','config/bq_cell1_v',{},3500);
+    const r2=await call('get','config/bq_cell2_v',{},3500);
+    paintCellVoltages(normalizeCellVoltage(r1),normalizeCellVoltage(r2));
+  }catch(e){
+    logW('读取单节电压: '+e);
+  }finally{cellVoltageReadBusy=false;}
+}
+function stopCellVoltagePolling(){
+  if(cellVoltageTimer)clearInterval(cellVoltageTimer);
+  cellVoltageTimer=null;cellVoltageReadBusy=false;paintCellVoltages(null,null);
+}
+function startCellVoltagePolling(){
+  stopCellVoltagePolling();
+  if(!connected)return;
+  refreshCellVoltages();
+  cellVoltageTimer=setInterval(refreshCellVoltages,1000);
+}
 
 const CHARGE_ETA_STATE={samples:[],ratePerHour:null,lastSampleAt:0,direction:'idle'};
 function paintChargeEta(state,value,detail,label='预计时间'){
