@@ -527,6 +527,8 @@ nav.tabs{background:rgba(255,255,255,.94);border:none;box-shadow:0 -8px 30px rgb
 .device-connected{font-size:28px;font-weight:800;letter-spacing:-.03em}.device-connected small{display:inline-flex;vertical-align:4px;margin-left:8px;width:28px;height:24px;border-radius:8px;align-items:center;justify-content:center;background:linear-gradient(145deg,#438ff1,#236fd6);color:#fff;box-shadow:0 5px 12px rgba(40,123,223,.22)}.device-connected small svg{width:15px;height:15px;display:block}
 .energy-badge{color:#54aa98;background:#fff;padding:8px 12px;border-radius:14px;font-size:12px;box-shadow:0 4px 14px rgba(31,52,45,.05)}
 .power-stage{position:relative;min-height:390px;padding:8px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border-radius:32px;box-shadow:0 7px 26px rgba(29,49,42,.055);overflow:hidden}
+.charge-eta-card{position:absolute;right:18px;top:18px;z-index:7;min-width:122px;padding:11px 13px;border:1px solid rgba(62,184,154,.13);border-radius:17px;background:rgba(249,253,251,.92);box-shadow:0 8px 24px rgba(36,88,72,.09);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-variant-numeric:tabular-nums;pointer-events:none}
+.charge-eta-head{display:flex;align-items:center;gap:6px;color:#76827d;font-size:9px;letter-spacing:.08em}.charge-eta-head svg{width:13px;height:13px;color:#3db68f;stroke-width:2}.charge-eta-value{margin-top:5px;color:#229c70;font-size:17px;font-weight:760;line-height:1.1;letter-spacing:-.025em}.charge-eta-detail{margin-top:4px;color:#8b9691;font-size:8px;line-height:1.25}.charge-eta-card[data-state="idle"] .charge-eta-value,.charge-eta-card[data-state="waiting"] .charge-eta-value{color:#75807c}.charge-eta-card[data-state="full"] .charge-eta-value{color:#21a46f}.charge-eta-card[data-state="discharging"] .charge-eta-value,.charge-eta-card[data-state="discharging"] .charge-eta-head svg{color:var(--red)}
 .power-device{width:160px;height:238px;padding:12px;border-radius:29px 25px 25px 29px;background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(236,226,218,.78));border:2px solid rgba(223,210,201,.75);box-shadow:12px 18px 34px rgba(112,92,76,.13),inset 0 0 0 7px rgba(255,255,255,.42);transform:perspective(600px) rotateY(-9deg);position:relative;overflow:hidden}
 .power-device::before{content:'ZHP2D';position:absolute;left:11px;top:16px;color:#a49a93;font-size:8px;letter-spacing:.16em;writing-mode:vertical-rl;z-index:3}
 .power-device::after{content:'';position:absolute;inset:10px;border-radius:20px;background:linear-gradient(105deg,rgba(255,255,255,.45),transparent 45%);z-index:4;pointer-events:none}
@@ -608,6 +610,7 @@ html[data-theme="dark"],html[data-theme="dark"] body{background:#0d1110;color:va
 html[data-theme="dark"] body{background:linear-gradient(180deg,#111513 0%,#0b0e0d 100%)}
 html[data-theme="dark"] header{background:rgba(16,20,19,.92);border-bottom:1px solid rgba(255,255,255,.035)}
 html[data-theme="dark"] .logo,html[data-theme="dark"] .pill,html[data-theme="dark"] .ico-btn,html[data-theme="dark"] .card,html[data-theme="dark"] .power-stage,html[data-theme="dark"] .energy-badge,html[data-theme="dark"] .summary-card,html[data-theme="dark"] .quick-link,html[data-theme="dark"] .dashboard-details>summary{background:#171d1b;color:var(--text);box-shadow:0 7px 24px rgba(0,0,0,.22)}
+html[data-theme="dark"] .charge-eta-card{background:rgba(28,36,33,.92);border-color:#30423b;box-shadow:0 8px 24px rgba(0,0,0,.25)}html[data-theme="dark"] .charge-eta-head,html[data-theme="dark"] .charge-eta-detail{color:#96a39d}html[data-theme="dark"] .charge-eta-value{color:#63d2a6}
 html[data-theme="dark"] nav.tabs{background:rgba(18,23,21,.95);box-shadow:0 -8px 30px rgba(0,0,0,.26)}
 html[data-theme="dark"] .tab svg,html[data-theme="dark"] .quick-icon{background:#202927;color:#61cbbb}html[data-theme="dark"] .tab.active svg{background:#19312c;color:#56c8b6}
 html[data-theme="dark"] .summary-item+.summary-item{border-color:#2b3532}html[data-theme="dark"] .summary-value small,html[data-theme="dark"] .summary-label,html[data-theme="dark"] .summary-temp-name,html[data-theme="dark"] .summary-temp-value small,html[data-theme="dark"] .home-total-power-caption,html[data-theme="dark"] .home-total-power-value small{color:#9ba7a2}html[data-theme="dark"] .summary-temp-value{color:#eef4f1}
@@ -620,6 +623,7 @@ html[data-theme="dark"] #connect-card .connect-hero{background:radial-gradient(c
 
 @media(max-width:520px){.operation-row{grid-template-columns:1fr auto;gap:10px 7px}.operation-electrical{grid-column:1/-1;grid-row:2;width:100%;max-width:none;padding:10px 0;border-radius:16px;background:rgba(255,255,255,.55)}html[data-theme="dark"] .operation-electrical{background:rgba(255,255,255,.035)}}
 @media(max-width:420px){header{padding-left:16px;padding-right:16px}.top-row{gap:7px}.brand{gap:8px;min-width:0}.brand h1{font-size:14px;white-space:nowrap}.brand small{display:none}.logo{width:36px;height:36px;flex:none}.actions{gap:5px}.pill{padding:5px 7px}.theme-toggle{width:34px;height:34px;flex:none}main{padding-left:12px;padding-right:12px}.device-connected{font-size:25px}.power-stage{min-height:360px}.power-device{width:145px;height:218px}.power-device.model-ready{width:260px;height:320px;transform:translateX(42px)}.charger-head{left:.8%;top:45%;width:72px;height:92px;border-radius:17px}.charger-head::after{border-radius:13px}.charger-bolt{font-size:22px;margin-bottom:10px}.charger-power b{font-size:15px}.charger-power small{font-size:8px}.operation-row{margin-left:0;margin-right:0}.operation-state{gap:11px;font-size:23px}.home-total-power-value{font-size:30px}.home-total-power-caption{font-size:9px;margin-top:5px}.power-profile-buttons{gap:7px}.power-profile-wrap{width:54px;height:29px}.power-profile{width:54px;height:29px;padding:0;border-radius:9px;font-size:7.5px;letter-spacing:.02em}.eco-voltage-grid{gap:4px}.eco-profile-card{padding:16px}.quick-link{padding:14px;font-size:15px}.quick-icon{width:38px;height:38px}.summary-value{font-size:25px}#view-set .card{padding-left:12px;padding-right:12px}.grp-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;overflow:visible;gap:7px}.grp-tab{min-width:0;width:100%;padding:8px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0}.spinbox .sp-btn{width:24px}.spinbox .sp-val{min-width:46px;padding-left:4px;padding-right:4px}.setting .unit{min-width:0}}
+@media(max-width:420px){.charge-eta-card{right:12px;top:12px;min-width:106px;padding:9px 10px;border-radius:15px}.charge-eta-value{font-size:15px}}
 @media(min-width:700px){.power-stage{min-height:430px}.power-device{width:180px;height:268px}.power-device.model-ready{width:330px;height:400px}.quick-grid{grid-template-columns:repeat(2,1fr)}.device-home{padding-left:20px;padding-right:20px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
@@ -718,6 +722,11 @@ html[data-theme="dark"] #connect-card .connect-hero{background:radial-gradient(c
       </div>
 
       <div class="power-stage">
+        <div class="charge-eta-card" id="charge-eta-card" data-state="idle" aria-live="polite">
+          <div class="charge-eta-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="charge-eta-label">预计充满</span></div>
+          <div class="charge-eta-value" id="charge-eta-value">--</div>
+          <div class="charge-eta-detail" id="charge-eta-detail">未在充电</div>
+        </div>
         <div class="charge-scene">
           <svg class="charge-cable" viewBox="0 0 100 100" preserveAspectRatio="none">
             <path class="cable-shadow" d="M21 59 L27 59 C31 60 32 74 37 74 C43 74 42 60 42 48 L42 27 C42 14 45 10 48 9 C53 8 57 12 57 17 L57 20"/>
@@ -1016,7 +1025,7 @@ function getLiquidPalette(soc){return soc<10?ZHP2D_LIQUID_PALETTES.red:soc<30?ZH
 
 /* ===================== STEP 3D device model ===================== */
 window.ZHP2D3D = (function(){
-  let liquid = null, liquidSurface = null;
+  let liquid = null, liquidSurface = null, fanRotor = null;
   let modelBounds = null, currentSoc = 0, currentLiquidDepth = 30, renderModel = null;
   function typed(base64, Type){
     const raw = atob(base64), bytes = new Uint8Array(raw.length);
@@ -1099,6 +1108,44 @@ window.ZHP2D3D = (function(){
         const edges=new THREE.LineSegments(new THREE.EdgesGeometry(geometry,24),new THREE.LineBasicMaterial({color:0x52615c,transparent:true,opacity:.54,depthWrite:false}));
         edges.renderOrder=3;cadRoot.add(edges);
       });
+      /* 顶部实体风扇样例：固定框架与可旋转叶轮分离，保持半透明线框风格。 */
+      const fanAssembly=new THREE.Group();fanRotor=new THREE.Group();
+      const fanRadius=Math.min((max[0]-min[0])*.18,(max[1]-min[1])*.36);
+      const fanBodyMaterial=new THREE.MeshPhongMaterial({color:0x81918c,specular:0xa9b8b3,shininess:48,transparent:true,opacity:.42,side:THREE.DoubleSide,depthWrite:false});
+      const fanBladeMaterial=new THREE.MeshPhongMaterial({color:0x60746e,specular:0xb8c7c2,shininess:54,transparent:true,opacity:.62,side:THREE.DoubleSide,depthWrite:false});
+      const fanGuardMaterial=new THREE.MeshPhongMaterial({color:0x9aa8a3,specular:0xc8d3cf,shininess:42,transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false});
+      function addFanPart(parent,geometry,material,edgeOpacity=.66){
+        const partGroup=new THREE.Group(),mesh=new THREE.Mesh(geometry,material);mesh.renderOrder=3.25;partGroup.add(mesh);
+        const edge=new THREE.LineSegments(new THREE.EdgesGeometry(geometry,22),new THREE.LineBasicMaterial({color:0x465a54,transparent:true,opacity:edgeOpacity,depthWrite:false}));
+        edge.renderOrder=3.4;partGroup.add(edge);parent.add(partGroup);return partGroup;
+      }
+      addFanPart(fanAssembly,new THREE.TorusGeometry(fanRadius,fanRadius*.075,8,48),fanBodyMaterial,.78);
+      addFanPart(fanAssembly,new THREE.TorusGeometry(fanRadius*.58,fanRadius*.025,6,40),fanGuardMaterial,.46);
+      for(let i=0;i<4;i++){
+        const spoke=addFanPart(fanAssembly,new THREE.BoxGeometry(fanRadius*1.78,fanRadius*.035,fanRadius*.035),fanGuardMaterial,.32);
+        spoke.rotation.z=i*Math.PI/4;
+      }
+      const bladeShape=new THREE.Shape();
+      bladeShape.moveTo(fanRadius*.18,-fanRadius*.10);
+      bladeShape.bezierCurveTo(fanRadius*.38,-fanRadius*.24,fanRadius*.78,-fanRadius*.25,fanRadius*.84,-fanRadius*.07);
+      bladeShape.bezierCurveTo(fanRadius*.73,fanRadius*.15,fanRadius*.40,fanRadius*.25,fanRadius*.18,fanRadius*.11);
+      bladeShape.quadraticCurveTo(fanRadius*.10,0,fanRadius*.18,-fanRadius*.10);
+      for(let i=0;i<5;i++){
+        const bladeGeometry=new THREE.ExtrudeGeometry(bladeShape,{depth:fanRadius*.065,steps:1,curveSegments:8,bevelEnabled:true,bevelSegments:2,bevelSize:fanRadius*.018,bevelThickness:fanRadius*.014});
+        bladeGeometry.translate(0,0,-fanRadius*.0325);
+        const blade=new THREE.Mesh(bladeGeometry,fanBladeMaterial);blade.rotation.z=i*Math.PI*2/5;blade.renderOrder=3.3;fanRotor.add(blade);
+        const bladeEdge=new THREE.LineSegments(new THREE.EdgesGeometry(bladeGeometry,20),new THREE.LineBasicMaterial({color:0x40544e,transparent:true,opacity:.72,depthWrite:false}));
+        bladeEdge.rotation.z=blade.rotation.z;bladeEdge.renderOrder=3.42;fanRotor.add(bladeEdge);
+      }
+      const fanHub=addFanPart(fanRotor,new THREE.CylinderGeometry(fanRadius*.19,fanRadius*.23,fanRadius*.16,32),fanBladeMaterial,.8);
+      fanHub.rotation.x=Math.PI/2;
+      fanAssembly.add(fanRotor);
+      const clampFanY=value=>Math.max(min[1]+fanRadius,Math.min(max[1]-fanRadius,value));
+      const clampFanZ=value=>Math.max(min[2]+fanRadius,Math.min(max[2]-fanRadius,value));
+      const fanDepth=-.7;
+      fanAssembly.position.set(min[0]-fanDepth,clampFanY(8.7),clampFanZ(19.9));
+      fanAssembly.rotation.set(0,-Math.PI/2,0);
+      fanAssembly.renderOrder=3.2;cadRoot.add(fanAssembly);
       const sx=(max[0]-min[0])*.68, sy=(max[1]-min[1])*.62, sz=Math.max(1,max[2]-min[2]-18);
       const liquidGeometry=makeLiquidGeometry(sx,sy,sz);
       const liquidMaterial=new THREE.MeshBasicMaterial({color:0x149c45,transparent:true,opacity:.96,depthWrite:true});
@@ -1120,17 +1167,33 @@ window.ZHP2D3D = (function(){
         if (renderModel) renderModel();
       }
       renderModel=()=>renderer.render(scene,camera);
-      let waveLast=0;
-      function animateLiquidWaves(now){
-        requestAnimationFrame(animateLiquidWaves);
-        if(now-waveLast<40||!liquidSurface||!liquidSurface.visible)return;
-        waveLast=now;
-        const fx=window.ZHP2D_POWER_FX||{ratio:0,direction:'idle'},direction=fx.direction==='discharge'?-1:1,speed=.00055+Math.min(1,fx.ratio||0)*.0005;
-        if(liquidSurface){liquidSurface.material.uniforms.uTime.value=now*speed;liquidSurface.material.uniforms.uDirection.value=direction;liquidSurface.material.uniforms.uAmplitude.value=Math.max(1.2,sy*(.014+Math.min(1,fx.ratio||0)*.008));}
-        renderModel();
+      let animationLast=0,waveLast=0,wavePhase=0,waveVelocity=.55,waveRatio=0,waveAmplitude=Math.max(1.2,sy*.014),fanVelocity=0;
+      function animateModel(now){
+        requestAnimationFrame(animateModel);
+        const dt=Math.min(50,animationLast?now-animationLast:16);animationLast=now;
+        const fx=window.ZHP2D_POWER_FX||{ratio:0,direction:'idle'},targetRatio=Math.max(0,Math.min(1,Number(fx.targetRatio)||0));
+        const fanTarget=fx.direction==='idle'?0:2.2+targetRatio*17;
+        fanVelocity+=(fanTarget-fanVelocity)*(1-Math.exp(-dt/680));
+        let needsRender=false;
+        if(fanRotor&&(Math.abs(fanVelocity)>.004||fanTarget>0)){
+          fanRotor.rotation.z=(fanRotor.rotation.z+fanVelocity*dt/1000)%(Math.PI*2);needsRender=true;
+        }
+        if(now-waveLast>=40&&liquidSurface&&liquidSurface.visible){
+          const waveDt=Math.min(80,waveLast?now-waveLast:40);waveLast=now;
+          const ratioFollow=1-Math.exp(-waveDt/720),motionFollow=1-Math.exp(-waveDt/900);
+          waveRatio+=(targetRatio-waveRatio)*ratioFollow;
+          const direction=fx.direction==='discharge'?-1:fx.direction==='charge'?1:0;
+          const targetVelocity=direction*(.55+waveRatio*.5);
+          waveVelocity+=(targetVelocity-waveVelocity)*motionFollow;
+          wavePhase+=waveVelocity*waveDt/1000;
+          const targetAmplitude=Math.max(1.2,sy*(.014+waveRatio*.008));
+          waveAmplitude+=(targetAmplitude-waveAmplitude)*ratioFollow;
+          liquidSurface.material.uniforms.uTime.value=wavePhase;liquidSurface.material.uniforms.uDirection.value=1;liquidSurface.material.uniforms.uAmplitude.value=waveAmplitude;needsRender=true;
+        }
+        if(needsRender)renderModel();
       }
       new ResizeObserver(resize).observe(host);resize();setSoc(currentSoc);setLiquidDepth(currentLiquidDepth);host.classList.add('model-ready');renderModel();
-      if(!matchMedia('(prefers-reduced-motion: reduce)').matches)requestAnimationFrame(animateLiquidWaves);
+      if(!matchMedia('(prefers-reduced-motion: reduce)').matches)requestAnimationFrame(animateModel);
     }catch(e){ console.warn('3D model fallback:',e); }
   }
   return {init,setSoc};
@@ -1149,15 +1212,16 @@ function updatePowerEffects(direction,power){
 window.addEventListener('DOMContentLoaded',()=>{
   const canvas=$('power-particles'),stage=canvas&&canvas.closest('.power-stage'),device=$('power-device');
   if (!canvas || !stage || !device) return;
-  const ctx=canvas.getContext('2d'),particles=[],flowPath=stage.querySelector('.charging-flow');
+  const ctx=canvas.getContext('2d'),particles=[],windStreaks=[],flowPath=stage.querySelector('.charging-flow');
   const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let last=performance.now(),spawnCarry=0,dpr=1,effectDirection='',effectColor='#57c66d',emissionBounds=null;
+  let last=performance.now(),spawnCarry=0,windSpawnCarry=0,dpr=1,effectDirection='',effectColor='#57c66d',emissionBounds=null;
   function resize(){
     const r=stage.getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,2);
     canvas.width=Math.max(1,Math.round(r.width*dpr));canvas.height=Math.max(1,Math.round(r.height*dpr));
     ctx.setTransform(dpr,0,0,dpr,0,0);
     const d=device.getBoundingClientRect();
     emissionBounds={left:d.left-r.left+d.width*.28,right:d.right-r.left-d.width*.28,top:d.top-r.top+d.height*.12,bottom:d.bottom-r.top-d.height*.12};
+    windStreaks.length=0;
   }
   const particleResizeObserver=new ResizeObserver(resize);particleResizeObserver.observe(stage);particleResizeObserver.observe(device);resize();
   function spawn(){
@@ -1171,6 +1235,35 @@ window.addEventListener('DOMContentLoaded',()=>{
     const spread=(Math.random()-.5)*.85,cs=Math.cos(spread),sn=Math.sin(spread),speed=.12+ratio*.62+Math.random()*(.12+ratio*.28);
     particles.push({x,y,vx:(nx*cs-ny*sn)*speed,vy:(nx*sn+ny*cs)*speed,life:1,size:.8+Math.random()*(1.4+ratio*1.3)});
   }
+  function spawnWindStreak(){
+    const e=emissionBounds,fx=window.ZHP2D_POWER_FX;if(!e||e.right<=e.left||e.bottom<=e.top)return;
+    const ratio=Math.max(0,Math.min(1,fx.ratio||0)),kind=Math.random()<.5?'inlet':'outlet',height=e.bottom-e.top;
+    const inlet=kind==='inlet';
+    const x=inlet?e.left-(18+Math.random()*42):e.right+1;
+    const y=e.top+height*(inlet ? .21+Math.random()*.14 : .19+Math.random()*.18);
+    const limitX=inlet?e.left+2:e.right+30+Math.random()*44;
+    windStreaks.push({x,y,kind,direction:1,startX:x,limitX,age:0,ttl:1250+Math.random()*850,opacity:0,reached:false,fadeAge:0,length:13+ratio*25+Math.random()*13,speed:.035+ratio*.21+Math.random()*.055,curl:2.5+Math.random()*6.5,phase:Math.random()*Math.PI*2,width:.55+ratio*.8+Math.random()*.35});
+  }
+  function drawWindStreaks(dt,ratio){
+    ctx.lineCap='round';ctx.lineJoin='round';
+    for(let i=windStreaks.length-1;i>=0;i--){
+      const p=windStreaks[i];p.age+=dt;
+      if(!p.reached){
+        p.x+=p.direction*p.speed*dt;
+        p.opacity+=(1-p.opacity)*(1-Math.exp(-dt/140));
+        if(p.x>=p.limitX||p.age>=p.ttl){p.x=Math.min(p.x,p.limitX);p.reached=true;p.fadeAge=0;}
+      }else{
+        p.fadeAge+=dt;p.opacity*=Math.exp(-dt/260);p.length*=Math.exp(-dt/900);
+      }
+      const progress=p.age/p.ttl;
+      if(p.reached&&(p.fadeAge>=1200||p.opacity<=.018)){windStreaks.splice(i,1);continue;}
+      const fade=Math.sin(Math.PI*progress),bend=Math.sin(progress*Math.PI*1.7+p.phase)*p.curl;
+      const tailX=p.x-p.direction*p.length,midX=(tailX+p.x)/2;
+      ctx.globalAlpha=p.opacity*(.13+ratio*.38);ctx.strokeStyle=effectColor;ctx.lineWidth=p.width;ctx.shadowColor=effectColor;ctx.shadowBlur=2+ratio*5;
+      ctx.beginPath();ctx.moveTo(tailX,p.y-bend*.28);ctx.quadraticCurveTo(midX,p.y+bend,p.x,p.y+bend*.18);ctx.stroke();
+    }
+    ctx.globalAlpha=1;ctx.shadowBlur=0;
+  }
   function frame(now){
     const w=canvas.clientWidth,h=canvas.clientHeight,dt=Math.min(36,now-last||16);last=now;
     ctx.clearRect(0,0,w,h);
@@ -1182,6 +1275,9 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!reduceMotion&&flowPath){fx.cablePhase=(fx.cablePhase+fx.cableVelocity*dt/1000)%16;flowPath.style.strokeDashoffset=fx.cablePhase.toFixed(3);}
     if(!reduceMotion&&connected&&fx.direction!=='idle'&&!document.hidden){
       if(effectDirection!==fx.direction){effectDirection=fx.direction;effectColor=getComputedStyle(document.documentElement).getPropertyValue(fx.direction==='charge'?'--green':'--red').trim()||effectColor;}
+      const windInterval=210-fx.ratio*155;windSpawnCarry+=dt;
+      while(windSpawnCarry>windInterval){windSpawnCarry-=windInterval;spawnWindStreak();}
+      drawWindStreaks(dt,fx.ratio);
       const interval=125-fx.ratio*100;spawnCarry+=dt;while(spawnCarry>interval){spawnCarry-=interval;spawn()}
       for(let i=particles.length-1;i>=0;i--){
         const p=particles[i];p.x+=p.vx*dt/16;p.y+=p.vy*dt/16;p.life-=.0055*dt/16;
@@ -1189,7 +1285,7 @@ window.addEventListener('DOMContentLoaded',()=>{
         ctx.globalAlpha=Math.sin(Math.PI*p.life)*(.38+fx.ratio*.32);ctx.fillStyle=effectColor;ctx.shadowColor=effectColor;ctx.shadowBlur=5+fx.ratio*8;
         ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();
       }
-    }else if(!connected||fx.direction==='idle'){particles.length=0}
+    }else if(!connected||fx.direction==='idle'||document.hidden){particles.length=0;windStreaks.length=0;spawnCarry=0;windSpawnCarry=0}
     ctx.globalAlpha=1;ctx.shadowBlur=0;requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -1243,6 +1339,7 @@ function setConnUI(on){
   var cc = $('config-card'); if (cc) cc.style.display = on ? 'block' : 'none';
   diagRefreshButtons();
   if (!on){
+    if(typeof resetChargeEta==='function')resetChargeEta('未连接设备');
     $('settings-host').innerHTML =
       '<div style="padding:30px 0;text-align:center;color:var(--text-fade);font-size:12px">未连接设备</div>';
     $('grp-tabs').innerHTML = '';
@@ -1724,6 +1821,65 @@ const hist = { t:[], bus:{v:[],i:[],p:[]}, bat:{v:[],i:[],p:[]} };
 let chartSource='bus';
 const chartSeries={v:true,i:true,p:true};
 
+const CHARGE_ETA_STATE={samples:[],ratePerHour:null,lastSampleAt:0,direction:'idle'};
+function paintChargeEta(state,value,detail,label='预计时间'){
+  const card=$('charge-eta-card'),labelEl=$('charge-eta-label'),valueEl=$('charge-eta-value'),detailEl=$('charge-eta-detail');
+  if(card)card.dataset.state=state;
+  if(labelEl)labelEl.textContent=label;
+  if(valueEl)valueEl.textContent=value;
+  if(detailEl)detailEl.textContent=detail;
+}
+function resetChargeEta(detail='等待充放电'){
+  CHARGE_ETA_STATE.samples.length=0;CHARGE_ETA_STATE.ratePerHour=null;CHARGE_ETA_STATE.lastSampleAt=0;CHARGE_ETA_STATE.direction='idle';
+  paintChargeEta('idle','--',detail,'预计时间');
+}
+function formatChargeEta(minutes){
+  if(!Number.isFinite(minutes)||minutes<=0)return '--';
+  if(minutes>10080)return '超过 7 天';
+  if(minutes<60)return '约 '+Math.max(1,Math.round(minutes/5)*5)+' 分钟';
+  let hours=Math.floor(minutes/60),mins=Math.round((minutes-hours*60)/5)*5;
+  if(mins>=60){hours++;mins=0;}
+  if(hours<24)return '约 '+hours+' 小时'+(mins?' '+mins+' 分':'');
+  const days=Math.floor(hours/24),rest=hours%24;
+  return '约 '+days+' 天'+(rest?' '+rest+' 小时':'');
+}
+function updateChargeEta(soc,flowDirection,now=Date.now()){
+  const state=CHARGE_ETA_STATE,safeSoc=Math.max(0,Math.min(100,Number(soc)||0));
+  const activeDirection=flowDirection==='charge'||flowDirection==='discharge'?flowDirection:'idle';
+  if(activeDirection==='idle'){resetChargeEta();return;}
+  if(activeDirection==='charge'&&safeSoc>=99.9){state.samples.length=0;state.ratePerHour=null;state.lastSampleAt=0;state.direction='idle';paintChargeEta('full','已充满','电量已达到 100%','预计充满');return;}
+  if(activeDirection==='discharge'&&safeSoc<=.1){state.samples.length=0;state.ratePerHour=null;state.lastSampleAt=0;state.direction='idle';paintChargeEta('discharging','电量不足','电量已接近 0%','剩余使用时间');return;}
+  if(state.direction!==activeDirection){state.samples.length=0;state.ratePerHour=null;state.lastSampleAt=0;state.direction=activeDirection;}
+  if(!state.lastSampleAt||now-state.lastSampleAt>=5000){
+    state.samples.push({t:now,soc:safeSoc});state.lastSampleAt=now;
+    const cutoff=now-20*60*1000;
+    while(state.samples.length>2&&state.samples[0].t<cutoff)state.samples.shift();
+  }
+  const samples=state.samples,span=samples.length>1?samples[samples.length-1].t-samples[0].t:0;
+  const etaLabel=activeDirection==='charge'?'预计充满':'剩余使用时间';
+  const rateVerb=activeDirection==='charge'?'提升':'下降';
+  if(samples.length<4||span<45000){paintChargeEta('waiting','计算中','正在采样电量'+rateVerb+'速率',etaLabel);return;}
+  const t0=samples[0].t,n=samples.length;
+  let sumX=0,sumY=0;
+  for(const sample of samples){sumX+=(sample.t-t0)/3600000;sumY+=sample.soc;}
+  const meanX=sumX/n,meanY=sumY/n;let covariance=0,variance=0;
+  for(const sample of samples){const x=(sample.t-t0)/3600000-meanX;covariance+=x*(sample.soc-meanY);variance+=x*x;}
+  const signedRate=variance>0?covariance/variance:0;
+  const rawRate=activeDirection==='charge'?signedRate:-signedRate;
+  const changed=activeDirection==='charge'?samples[samples.length-1].soc-samples[0].soc:samples[0].soc-samples[samples.length-1].soc;
+  if(!Number.isFinite(rawRate)||rawRate<=.05||changed<.03){paintChargeEta('waiting','计算中','等待电量产生有效变化',etaLabel);return;}
+  const measuredRate=Math.min(500,rawRate);
+  if(state.ratePerHour==null)state.ratePerHour=measuredRate;
+  else{
+    const bounded=Math.max(state.ratePerHour*.55,Math.min(state.ratePerHour*1.8,measuredRate));
+    state.ratePerHour+=(bounded-state.ratePerHour)*.22;
+  }
+  const remainingPercent=activeDirection==='charge'?100-safeSoc:safeSoc;
+  const minutes=remainingPercent/state.ratePerHour*60;
+  const sign=activeDirection==='charge'?'+':'−';
+  paintChargeEta(activeDirection==='charge'?'charging':'discharging',formatChargeEta(minutes),'当前速率 '+sign+state.ratePerHour.toFixed(state.ratePerHour<10?1:0)+'% / 小时',etaLabel);
+}
+
 function renderTele(d){
   if (waitingFirstTele) waitingFirstTele = false;   /* 首帧到达 → 退出 initAfterPair 等待,触发 info/settings 加载 */
   lastTele = d;
@@ -1768,6 +1924,7 @@ function renderTele(d){
     batteryFill.style.setProperty('--liquid-bottom', liquidPalette.bottom);
   }
   if (window.ZHP2D3D) window.ZHP2D3D.setSoc(soc);
+  updateChargeEta(soc,flowDirection);
   const C = 2 * Math.PI * 52;
   $('ring-fg').setAttribute('stroke-dasharray', C.toFixed(2));
   $('ring-fg').setAttribute('stroke-dashoffset', (C * (1 - soc/100)).toFixed(2));
