@@ -726,7 +726,7 @@ html[data-theme="dark"] #connect-card .connect-hero{background:radial-gradient(c
       </div>
 
       <div class="power-stage">
-        <button class="fan-model-control" id="btn-fan-model" type="button" role="switch" aria-checked="false" title="显示风扇模型"><span>风扇模型</span><span class="fan-model-switch" aria-hidden="true"></span></button>
+        <button class="fan-model-control" id="btn-cooling-effects" type="button" role="switch" aria-checked="false" title="开启散热动效"><span>散热动效</span><span class="fan-model-switch" aria-hidden="true"></span></button>
         <div class="charge-eta-card" id="charge-eta-card" data-state="idle" aria-live="polite">
           <div class="charge-eta-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="charge-eta-label">预计充满</span></div>
           <div class="charge-eta-value" id="charge-eta-value">--</div>
@@ -1214,18 +1214,19 @@ window.ZHP2D3D = (function(){
   return {init,setSoc,setFanVisible};
 })();
 window.addEventListener('DOMContentLoaded',()=>{
-  const control=$('btn-fan-model');
-  const applyFanVisible=enabled=>{
+  const control=$('btn-cooling-effects');
+  const applyCoolingEffects=enabled=>{
     const next=!!enabled;
-    if(control){control.setAttribute('aria-checked',String(next));control.title=next?'隐藏风扇模型':'显示风扇模型';}
+    if(control){control.setAttribute('aria-checked',String(next));control.title=next?'关闭散热动效':'开启散热动效';}
+    if(window.ZHP2D_POWER_FX)window.ZHP2D_POWER_FX.coolingEnabled=next;
     window.ZHP2D3D.setFanVisible(next);
   };
-  if(control)control.onclick=()=>applyFanVisible(control.getAttribute('aria-checked')!=='true');
-  window.ZHP2D3D.init();applyFanVisible(false);
+  if(control)control.onclick=()=>applyCoolingEffects(control.getAttribute('aria-checked')!=='true');
+  window.ZHP2D3D.init();applyCoolingEffects(false);
 });
 
 /* ===================== outward power particles ===================== */
-window.ZHP2D_POWER_FX={direction:'idle',power:0,ratio:0,targetRatio:0,maxPower:0,cablePhase:0,cableVelocity:0,lastUpdate:0};
+window.ZHP2D_POWER_FX={direction:'idle',power:0,ratio:0,targetRatio:0,maxPower:0,cablePhase:0,cableVelocity:0,lastUpdate:0,coolingEnabled:false};
 function updatePowerEffects(direction,power){
   const fx=window.ZHP2D_POWER_FX,stage=document.querySelector('.power-stage');
   const maxPower=direction==='charge'?180:direction==='discharge'?120:0;
@@ -1299,9 +1300,11 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!reduceMotion&&flowPath){fx.cablePhase=(fx.cablePhase+fx.cableVelocity*dt/1000)%16;flowPath.style.strokeDashoffset=fx.cablePhase.toFixed(3);}
     if(!reduceMotion&&connected&&fx.direction!=='idle'&&!document.hidden){
       if(effectDirection!==fx.direction){effectDirection=fx.direction;effectColor=getComputedStyle(document.documentElement).getPropertyValue(fx.direction==='charge'?'--green':'--red').trim()||effectColor;}
-      const windInterval=210-fx.ratio*155;windSpawnCarry+=dt;
-      while(windSpawnCarry>windInterval){windSpawnCarry-=windInterval;spawnWindStreak();}
-      drawWindStreaks(dt,fx.ratio);
+      if(fx.coolingEnabled){
+        const windInterval=210-fx.ratio*155;windSpawnCarry+=dt;
+        while(windSpawnCarry>windInterval){windSpawnCarry-=windInterval;spawnWindStreak();}
+        drawWindStreaks(dt,fx.ratio);
+      }else{windStreaks.length=0;windSpawnCarry=0;}
       const interval=125-fx.ratio*100;spawnCarry+=dt;while(spawnCarry>interval){spawnCarry-=interval;spawn()}
       for(let i=particles.length-1;i>=0;i--){
         const p=particles[i];p.x+=p.vx*dt/16;p.y+=p.vy*dt/16;p.life-=.0055*dt/16;
