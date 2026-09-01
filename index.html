@@ -530,18 +530,18 @@ nav.tabs{background:rgba(255,255,255,.94);border:none;box-shadow:0 -8px 30px rgb
 .fan-model-control{position:absolute;left:18px;top:18px;z-index:8;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(62,184,154,.13);border-radius:15px;background:rgba(249,253,251,.92);box-shadow:0 8px 24px rgba(36,88,72,.09);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#76827d;font:600 9px/1 'MiSans','PingFang SC',sans-serif;letter-spacing:.05em;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}.fan-model-control:focus-visible{outline:2px solid rgba(61,182,143,.45);outline-offset:2px}.fan-model-switch{position:relative;width:30px;height:17px;flex:none;border-radius:999px;background:#cfd8d4;box-shadow:inset 0 1px 2px rgba(36,63,54,.14);transition:background .22s ease}.fan-model-switch::after{content:'';position:absolute;left:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(36,63,54,.22);transition:transform .22s ease}.fan-model-control[aria-checked="true"]{color:#229c70}.fan-model-control[aria-checked="true"] .fan-model-switch{background:#44c49b}.fan-model-control[aria-checked="true"] .fan-model-switch::after{transform:translateX(13px)}
 .charge-eta-card{position:absolute;left:18px;bottom:18px;z-index:7;min-width:122px;padding:11px 13px;border:1px solid rgba(62,184,154,.13);border-radius:17px;background:rgba(249,253,251,.92);box-shadow:0 8px 24px rgba(36,88,72,.09);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-variant-numeric:tabular-nums;pointer-events:none}
 .charge-eta-head{display:flex;align-items:center;gap:6px;color:#76827d;font-size:9px;letter-spacing:.08em}.charge-eta-head svg{width:13px;height:13px;color:#3db68f;stroke-width:2}.charge-eta-value{margin-top:5px;color:#229c70;font-size:17px;font-weight:760;line-height:1.1;letter-spacing:-.025em}.charge-eta-detail{margin-top:4px;color:#8b9691;font-size:8px;line-height:1.25}.charge-eta-card[data-state="idle"] .charge-eta-value,.charge-eta-card[data-state="waiting"] .charge-eta-value{color:#75807c}.charge-eta-card[data-state="full"] .charge-eta-value{color:#21a46f}.charge-eta-card[data-state="discharging"] .charge-eta-value,.charge-eta-card[data-state="discharging"] .charge-eta-head svg{color:var(--red)}
-.power-device{width:160px;height:238px;padding:12px;border-radius:29px 25px 25px 29px;background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(236,226,218,.78));border:2px solid rgba(223,210,201,.75);box-shadow:12px 18px 34px rgba(112,92,76,.13),inset 0 0 0 7px rgba(255,255,255,.42);transform:perspective(600px) rotateY(-9deg);position:relative;overflow:hidden}
-.power-device::before{content:'ZHP2D';position:absolute;left:11px;top:16px;color:#a49a93;font-size:8px;letter-spacing:.16em;writing-mode:vertical-rl;z-index:3}
-.power-device::after{content:'';position:absolute;inset:10px;border-radius:20px;background:linear-gradient(105deg,rgba(255,255,255,.45),transparent 45%);z-index:4;pointer-events:none}
-.power-battery-fill{position:absolute;left:18px;right:13px;bottom:15px;height:var(--soc,0%);min-height:4px;max-height:calc(100% - 30px);border-radius:7px 7px 17px 17px;background:linear-gradient(180deg,var(--liquid-top,#35c96f),var(--liquid-bottom,#159449));transition:height .65s ease,background .4s ease;box-shadow:inset 0 8px 16px rgba(255,255,255,.18)}
-.power-battery-fill::before{content:'';position:absolute;left:-4%;right:-4%;top:-10px;height:20px;border-radius:46% 54% 48% 52%;background:var(--liquid-top,#35c96f);transition:background .4s ease;animation:liquidFallbackWave 3.2s ease-in-out infinite alternate;transform-origin:center}
-@keyframes liquidFallbackWave{0%{transform:translateX(-2%) rotate(-1.4deg) scaleY(.88)}50%{transform:translateX(1%) rotate(.8deg) scaleY(1.08)}100%{transform:translateX(2%) rotate(1.4deg) scaleY(.92)}}
-.battery-soc{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.12)}
-.power-device.model-ready{width:290px;height:350px;padding:0;border:0;background:transparent;box-shadow:none;transform:none;overflow:visible;touch-action:none}
-.power-device.model-ready::before,.power-device.model-ready::after,.power-device.model-ready .power-battery-fill{display:none}
+.power-device{width:290px;height:350px;padding:0;border:0;background:transparent;box-shadow:none;position:relative;overflow:visible;touch-action:none}
+.model-loading-shell{position:absolute;inset:12% 20%;border:1px solid rgba(80,113,103,.22);border-radius:28px;background:linear-gradient(145deg,rgba(231,241,237,.38),rgba(255,255,255,.74));box-shadow:inset 0 0 0 7px rgba(255,255,255,.34),0 16px 30px rgba(65,92,83,.07);overflow:hidden;opacity:.72}
+.model-loading-shell::before{content:'';position:absolute;inset:-30%;background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.9) 49%,transparent 60%);animation:modelSkeletonShimmer 1.7s ease-in-out infinite}
+.model-loading-shell::after{content:'';position:absolute;left:17%;right:17%;bottom:13%;height:42%;border-radius:11px;background:rgba(91,200,157,.12);box-shadow:0 -34px 0 -25px rgba(80,113,103,.11),0 -62px 0 -27px rgba(80,113,103,.08)}
+@keyframes modelSkeletonShimmer{0%{transform:translateX(-42%)}100%{transform:translateX(42%)}}
+.power-device.model-ready .model-loading-shell{display:none}
+.power-device.model-failed .model-loading-shell{opacity:.48}.power-device.model-failed .model-loading-shell::before{animation:none}
+.battery-soc{position:absolute;inset:auto 0 45% 0;z-index:5;display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:800;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .18s ease}
+.power-device.model-ready .battery-soc{opacity:1}
+.power-device.model-ready{overflow:visible}
 .power-device canvas{position:absolute;inset:0;width:100%;height:100%;display:block;filter:drop-shadow(12px 18px 18px rgba(63,76,70,.18))}
-.power-device.model-ready .battery-soc{height:auto;inset:auto 0 45% 0;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,.2)}
-.power-stage .power-device.model-ready{transform:translateX(72px);z-index:3}
+.power-stage .power-device{transform:translateX(72px);z-index:3}
 .power-particles{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
 .charge-scene{position:absolute;inset:0;z-index:1;pointer-events:none}
 .charge-cable{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
@@ -626,9 +626,9 @@ html[data-theme="dark"] .setting{border-color:#28312e}html[data-theme="dark"] .s
 html[data-theme="dark"] #connect-card .connect-hero{background:radial-gradient(circle at 50% 28%,#1b2421 0,#121816 58%,#0d1110 100%)}html[data-theme="dark"] .connect-hero .big-logo{background:#1c2522}html[data-theme="dark"] .connect-hero h2{color:#eef4f1}html[data-theme="dark"] .connect-hero p{color:#9aa6a1}
 
 @media(max-width:520px){.operation-row{grid-template-columns:1fr auto;gap:10px 7px}.operation-electrical{grid-column:1/-1;grid-row:2;width:100%;max-width:none;padding:10px 0;border-radius:16px;background:rgba(255,255,255,.55)}.charge-eta-card{left:10px;bottom:10px;min-width:88px;max-width:98px;padding:8px 9px;border-radius:14px}.charge-eta-head{gap:4px;font-size:8px;letter-spacing:.04em}.charge-eta-head svg{width:11px;height:11px}.charge-eta-value{margin-top:4px;font-size:14px}.charge-eta-detail{margin-top:3px;font-size:7px;line-height:1.2}html[data-theme="dark"] .operation-electrical{background:rgba(255,255,255,.035)}}
-@media(max-width:420px){header{padding-left:16px;padding-right:16px}.top-row{gap:7px}.brand{gap:8px;min-width:0}.brand h1{font-size:14px;white-space:nowrap}.brand small{display:none}.logo{width:36px;height:36px;flex:none}.actions{gap:5px}.pill{padding:5px 7px}.theme-toggle{width:34px;height:34px;flex:none}main{padding-left:12px;padding-right:12px}.device-connected{font-size:25px}.power-stage{min-height:360px}.fan-model-control{left:12px;top:12px;padding:7px 8px;gap:6px}.charge-eta-card{left:12px;bottom:12px;min-width:112px;padding:10px 11px}.power-device{width:145px;height:218px}.power-device.model-ready{width:260px;height:320px;transform:translateX(42px)}.charger-head{left:.8%;top:45%;width:72px;height:92px;border-radius:17px}.charger-head::after{border-radius:13px}.charger-bolt{font-size:22px;margin-bottom:10px}.charger-power b{font-size:15px}.charger-power small{font-size:8px}.operation-row{margin-left:0;margin-right:0}.operation-state{gap:11px;font-size:23px}.home-total-power-value{font-size:30px}.home-total-power-caption{font-size:9px;margin-top:5px}.power-profile-buttons{gap:7px}.power-profile-wrap{width:54px;height:29px}.power-profile{width:54px;height:29px;padding:0;border-radius:9px;font-size:7.5px;letter-spacing:.02em}.eco-voltage-grid{gap:4px}.eco-profile-card{padding:16px}.quick-link{padding:14px;font-size:15px}.quick-icon{width:38px;height:38px}.summary-value{font-size:25px}#view-set .card{padding-left:12px;padding-right:12px}.grp-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;overflow:visible;gap:7px}.grp-tab{min-width:0;width:100%;padding:8px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0}.spinbox .sp-btn{width:24px}.spinbox .sp-val{min-width:46px;padding-left:4px;padding-right:4px}.setting .unit{min-width:0}}
+@media(max-width:420px){header{padding-left:16px;padding-right:16px}.top-row{gap:7px}.brand{gap:8px;min-width:0}.brand h1{font-size:14px;white-space:nowrap}.brand small{display:none}.logo{width:36px;height:36px;flex:none}.actions{gap:5px}.pill{padding:5px 7px}.theme-toggle{width:34px;height:34px;flex:none}main{padding-left:12px;padding-right:12px}.device-connected{font-size:25px}.power-stage{min-height:360px}.fan-model-control{left:12px;top:12px;padding:7px 8px;gap:6px}.charge-eta-card{left:12px;bottom:12px;min-width:112px;padding:10px 11px}.power-device{width:260px;height:320px}.power-stage .power-device{transform:translateX(42px)}.charger-head{left:.8%;top:45%;width:72px;height:92px;border-radius:17px}.charger-head::after{border-radius:13px}.charger-bolt{font-size:22px;margin-bottom:10px}.charger-power b{font-size:15px}.charger-power small{font-size:8px}.operation-row{margin-left:0;margin-right:0}.operation-state{gap:11px;font-size:23px}.home-total-power-value{font-size:30px}.home-total-power-caption{font-size:9px;margin-top:5px}.power-profile-buttons{gap:7px}.power-profile-wrap{width:54px;height:29px}.power-profile{width:54px;height:29px;padding:0;border-radius:9px;font-size:7.5px;letter-spacing:.02em}.eco-voltage-grid{gap:4px}.eco-profile-card{padding:16px}.quick-link{padding:14px;font-size:15px}.quick-icon{width:38px;height:38px}.summary-value{font-size:25px}#view-set .card{padding-left:12px;padding-right:12px}.grp-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;overflow:visible;gap:7px}.grp-tab{min-width:0;width:100%;padding:8px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0}.spinbox .sp-btn{width:24px}.spinbox .sp-val{min-width:46px;padding-left:4px;padding-right:4px}.setting .unit{min-width:0}}
 @media(max-width:420px){.charge-eta-card{left:8px;bottom:9px;min-width:84px;max-width:94px;padding:8px;border-radius:13px}.charge-eta-value{font-size:13px}}
-@media(min-width:700px){.power-stage{min-height:430px}.power-device{width:180px;height:268px}.power-device.model-ready{width:330px;height:400px}.quick-grid{grid-template-columns:repeat(2,1fr)}.device-home{padding-left:20px;padding-right:20px}}
+@media(min-width:700px){.power-stage{min-height:430px}.power-device{width:330px;height:400px}.quick-grid{grid-template-columns:repeat(2,1fr)}.device-home{padding-left:20px;padding-right:20px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <script src="assets/vendor/three.min.js"></script>
@@ -745,8 +745,8 @@ html[data-theme="dark"] #connect-card .connect-hero{background:radial-gradient(c
           </div>
         </div>
         <canvas class="power-particles" id="power-particles" aria-hidden="true"></canvas>
-        <div class="power-device" id="power-device">
-          <div class="power-battery-fill" id="power-battery-fill"></div>
+        <div class="power-device model-loading" id="power-device">
+          <div class="model-loading-shell" aria-hidden="true"></div>
           <div class="battery-soc"><span id="soc-val">0</span><small>%</small></div>
         </div>
         <div class="legacy-ring" aria-hidden="true">
@@ -1090,7 +1090,8 @@ window.ZHP2D3D = (function(){
   }
   function init(){
     const host = $('power-device'), data = window.ZHP2D_MODEL;
-    if (!host || !data || !window.THREE) return;
+    if (!host) return;
+    if (!data || !window.THREE){host.classList.remove('model-loading');host.classList.add('model-failed');return;}
     try{
       modelBounds = data.bounds;
       const scene = new THREE.Scene();
@@ -1207,9 +1208,9 @@ window.ZHP2D3D = (function(){
         }
         if(needsRender)renderModel();
       }
-      new ResizeObserver(resize).observe(host);resize();setSoc(currentSoc);setLiquidDepth(currentLiquidDepth);host.classList.add('model-ready');renderModel();
+      new ResizeObserver(resize).observe(host);resize();setSoc(currentSoc);setLiquidDepth(currentLiquidDepth);host.classList.remove('model-loading','model-failed');host.classList.add('model-ready');renderModel();
       if(!matchMedia('(prefers-reduced-motion: reduce)').matches){animationActive=true;requestAnimationFrame(animateModel);}
-    }catch(e){ console.warn('3D model fallback:',e); }
+    }catch(e){host.classList.remove('model-loading');host.classList.add('model-failed');console.warn('3D model load failed:',e);}
   }
   return {init,setSoc,setFanVisible};
 })();
